@@ -1,30 +1,69 @@
-// This is a basic Flutter widget test.
-//
-// To perform an interaction with a widget in your test, use the WidgetTester
-// utility in the flutter_test package. For example, you can send tap and scroll
-// gestures. You can also use WidgetTester to find child widgets in the widget
-// tree, read text, and verify that the values of widget properties are correct.
-
 import 'package:flutter/material.dart';
+import 'package:flutter_ekg_detector/widgets/FloatingButtons.dart';
 import 'package:flutter_test/flutter_test.dart';
-
-import 'package:flutter_ekg_detector/main.dart';
+import 'package:lucide_icons/lucide_icons.dart';
 
 void main() {
-  testWidgets('Counter increments smoke test', (WidgetTester tester) async {
-    // Build our app and trigger a frame.
-    await tester.pumpWidget(const MyApp());
+  testWidgets(
+    'Floating menu shows ellipsis icon by default and expands on tap',
+    (WidgetTester tester) async {
+      bool scanPressed = false;
 
-    // Verify that our counter starts at 0.
-    expect(find.text('0'), findsOneWidget);
-    expect(find.text('1'), findsNothing);
+      await tester.pumpWidget(
+        MaterialApp(
+          home: Scaffold(
+            body: Stack(
+              children: [
+                GlassFloatingMenu(
+                  isOnHome: true,
+                  onScan: () {
+                    scanPressed = true;
+                  },
+                  onHome: () {},
+                ),
+              ],
+            ),
+          ),
+        ),
+      );
 
-    // Tap the '+' icon and trigger a frame.
-    await tester.tap(find.byIcon(Icons.add));
-    await tester.pump();
+      // ===== ASSERT DEFAULT ICON =====
+      expect(find.byIcon(LucideIcons.moreVertical), findsOneWidget);
 
-    // Verify that our counter has incremented.
-    expect(find.text('0'), findsNothing);
-    expect(find.text('1'), findsOneWidget);
+      // ===== TAP MAIN FAB =====
+      await tester.tap(find.byIcon(LucideIcons.moreVertical));
+      await tester.pumpAndSettle();
+
+      // ===== ASSERT SCAN MENU APPEARS =====
+      expect(find.text('Scan'), findsOneWidget);
+      expect(find.byIcon(LucideIcons.scan), findsOneWidget);
+
+      // ===== TAP SCAN MENU =====
+      await tester.tap(find.text('Scan'));
+      await tester.pumpAndSettle();
+
+      // ===== ASSERT CALLBACK =====
+      expect(scanPressed, isTrue);
+    },
+  );
+
+  testWidgets('Floating menu shows home icon when not on home screen', (
+    WidgetTester tester,
+  ) async {
+    await tester.pumpWidget(
+      MaterialApp(
+        home: Scaffold(
+          body: Stack(
+            children: [
+              GlassFloatingMenu(isOnHome: false, onScan: () {}, onHome: () {}),
+            ],
+          ),
+        ),
+      ),
+    );
+
+    // ===== ASSERT HOME ICON =====
+    expect(find.byIcon(LucideIcons.home), findsOneWidget);
+    expect(find.byIcon(LucideIcons.moreVertical), findsNothing);
   });
 }
