@@ -17,6 +17,8 @@ class MyApp extends StatefulWidget {
 }
 
 class _MyAppState extends State<MyApp> {
+  final GlobalKey<NavigatorState> navigatorKey = GlobalKey<NavigatorState>();
+
   StreamSubscription<List<ConnectivityResult>>? _subscription;
   ConnectivityResult? _lastStatus;
 
@@ -24,15 +26,16 @@ class _MyAppState extends State<MyApp> {
   void initState() {
     super.initState();
 
-    _subscription = Connectivity().onConnectivityChanged.listen(
-      _handleNetworkChange,
-    );
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      _subscription = Connectivity().onConnectivityChanged.listen(
+        _handleNetworkChange,
+      );
+    });
   }
 
   void _handleNetworkChange(List<ConnectivityResult> results) {
     final result = results.first;
 
-    // Hindari alert dobel
     if (result == _lastStatus) return;
     _lastStatus = result;
 
@@ -40,10 +43,14 @@ class _MyAppState extends State<MyApp> {
 
     if (!mounted) return;
 
+    // ✔️ Ambil overlay langsung dari NavigatorState
+    final overlayState = navigatorKey.currentState?.overlay;
+    if (overlayState == null) return;
+
     if (result == ConnectivityResult.none) {
-      NetworkAlertController.showDisconnected(context);
+      NetworkAlertController.showDisconnected(overlayState);
     } else {
-      NetworkAlertController.showConnected(context);
+      NetworkAlertController.showConnected(overlayState);
     }
   }
 
@@ -58,6 +65,7 @@ class _MyAppState extends State<MyApp> {
     return BlocProvider(
       create: (_) => AuthBloc(AuthRepository())..add(AppStarted()),
       child: MaterialApp(
+        navigatorKey: navigatorKey,
         debugShowCheckedModeBanner: false,
         theme: ThemeData.light(),
         home: const SplashScreen(),

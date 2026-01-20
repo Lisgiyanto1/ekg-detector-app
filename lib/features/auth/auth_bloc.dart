@@ -50,7 +50,8 @@ class AuthBloc extends Bloc<AuthEvent, AuthState> {
       );
       emit(AuthAuthenticated(user));
     } catch (e) {
-      emit(AuthError(e.toString()));
+      final message = AuthErrorMapper.map(e);
+      emit(AuthError(message));
     }
   }
 

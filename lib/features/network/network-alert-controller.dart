@@ -1,11 +1,15 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:flutter_ekg_detector/widgets/NetworkAlert.dart';
 import 'package:lucide_icons/lucide_icons.dart';
 
 class NetworkAlertController {
   static OverlayEntry? _entry;
+  static bool _isInserted = false;
+  static Timer? _timer;
 
-  static void showDisconnected(BuildContext context) {
+  static void showDisconnected(OverlayState overlayState) {
     _remove();
 
     _entry = OverlayEntry(
@@ -18,10 +22,11 @@ class NetworkAlertController {
       ),
     );
 
-    Overlay.of(context, rootOverlay: true).insert(_entry!);
+    overlayState.insert(_entry!);
+    _isInserted = true;
   }
 
-  static void showConnected(BuildContext context) {
+  static void showConnected(OverlayState overlayState) {
     _remove();
 
     _entry = OverlayEntry(
@@ -34,14 +39,19 @@ class NetworkAlertController {
       ),
     );
 
-    Overlay.of(context, rootOverlay: true).insert(_entry!);
+    overlayState.insert(_entry!);
+    _isInserted = true;
 
-    Future.delayed(const Duration(seconds: 2), _remove);
+    _timer?.cancel();
+    _timer = Timer(const Duration(seconds: 2), _remove);
   }
 
   static void _remove() {
+    if (!_isInserted) return;
+
     _entry?.remove();
     _entry = null;
+    _isInserted = false;
   }
 }
 

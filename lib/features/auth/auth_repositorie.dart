@@ -49,9 +49,8 @@ class AuthRepository {
       );
 
       final account = await _google.authenticate();
-      _validateGoogleAccount(account);
 
-      final googleAuth = await account!.authentication;
+      final googleAuth = await account.authentication;
       final credential = GoogleAuthProvider.credential(
         idToken: googleAuth.idToken,
       );
@@ -59,17 +58,7 @@ class AuthRepository {
       final result = await _auth.signInWithCredential(credential);
       return result.user!;
     } catch (e) {
-      debugPrint('[AUTH][ERROR] Google Sign-In: $e');
       rethrow;
-    }
-  }
-
-  void _validateGoogleAccount(GoogleSignInAccount? account) {
-    if (account == null) {
-      throw FirebaseAuthException(
-        code: 'google-cancelled',
-        message: 'Login Google dibatalkan oleh pengguna',
-      );
     }
   }
 

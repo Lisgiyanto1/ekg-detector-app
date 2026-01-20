@@ -251,7 +251,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
     if (value == null || value.isEmpty) return 'Password wajib diisi';
 
     final passwordRegex = RegExp(
-      r'^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[\W_]).{6,}$',
+      r'^(?=.*[a-z])(?=.*[A-Z])(?=.*\d).{6,}$',
     );
 
     if (!passwordRegex.hasMatch(value)) {
