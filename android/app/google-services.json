@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "950306042372",
+    "project_id": "ekg-app-c5f28",
+    "storage_bucket": "ekg-app-c5f28.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:950306042372:android:84e07bc8927261ec9cfb51",
+        "android_client_info": {
+          "package_name": "com.example.flutter_ekg_detector"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyANu33ufKoLvExMqa-9S683gPgDgmj-Mqw"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}

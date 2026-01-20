@@ -8,11 +8,13 @@ enum FloatingMenuMode { home, result }
 class GlassFloatingMenu extends StatefulWidget {
   final FloatingMenuMode mode;
   final VoidCallback onPrimaryAction;
+  final VoidCallback onLogout;
 
   const GlassFloatingMenu({
     super.key,
     required this.mode,
     required this.onPrimaryAction,
+    required this.onLogout,
   });
 
   @override
@@ -23,7 +25,7 @@ class _GlassFloatingMenuState extends State<GlassFloatingMenu> {
   bool isExpanded = false;
 
   static const double size = 56;
-  static const double expandedHeight = 112;
+  static const double expandedHeight = 168;
 
   @override
   Widget build(BuildContext context) {
@@ -51,10 +53,25 @@ class _GlassFloatingMenuState extends State<GlassFloatingMenu> {
             child: Stack(
               alignment: Alignment.bottomCenter,
               children: [
-                /// ===== PRIMARY ACTION =====
+                /// ===== LOGOUT =====
                 AnimatedPositioned(
                   duration: const Duration(milliseconds: 220),
                   top: isExpanded ? 0 : size,
+                  left: 0,
+                  right: 0,
+                  child: _menuIcon(
+                    icon: LucideIcons.logOut,
+                    onTap: () {
+                      setState(() => isExpanded = false);
+                      widget.onLogout();
+                    },
+                  ),
+                ),
+
+                /// ===== PRIMARY =====
+                AnimatedPositioned(
+                  duration: const Duration(milliseconds: 220),
+                  top: isExpanded ? size : size,
                   left: 0,
                   right: 0,
                   child: _menuIcon(
@@ -66,7 +83,7 @@ class _GlassFloatingMenuState extends State<GlassFloatingMenu> {
                   ),
                 ),
 
-                /// ===== TOGGLE BUTTON (ALWAYS VISIBLE) =====
+                /// ===== TOGGLE =====
                 _menuIcon(
                   icon: LucideIcons.moreVertical,
                   onTap: () {
