@@ -67,7 +67,7 @@ class _MyAppState extends State<MyApp> {
       child: MaterialApp(
         navigatorKey: navigatorKey,
         debugShowCheckedModeBanner: false,
-        theme: ThemeData.light(),
+        theme: ThemeData(fontFamily: 'Montserrat', useMaterial3: true),
         home: const SplashScreen(),
       ),
     );

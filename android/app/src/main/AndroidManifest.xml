@@ -1,6 +1,7 @@
 <manifest xmlns:android="http://schemas.android.com/apk/res/android">
+    <uses-permission android:name="android.permission.CAMERA"/>
     <application
-        android:label="flutter_ekg_detector"
+        android:label="ekg_detector_app"
         android:name="${applicationName}"
         android:icon="@mipmap/launcher_icon">
         <activity

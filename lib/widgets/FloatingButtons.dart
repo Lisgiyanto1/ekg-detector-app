@@ -1,6 +1,7 @@
 import 'dart:ui';
 
 import 'package:flutter/material.dart';
+import 'package:flutter_ekg_detector/widgets/ScanModal.dart';
 import 'package:lucide_icons/lucide_icons.dart';
 
 enum FloatingMenuMode { home, result }
@@ -27,6 +28,24 @@ class _GlassFloatingMenuState extends State<GlassFloatingMenu> {
   static const double size = 56;
   static const double expandedHeight = 168;
 
+  void _handlePrimaryAction() {
+    setState(() => isExpanded = false);
+
+    // LOGIKA TAMBAHAN: Tampilkan Modal jika di mode home (Scan)
+    if (widget.mode == FloatingMenuMode.home) {
+      showDialog(
+        context: context,
+        barrierColor: Colors.black.withValues(
+          alpha: 0.5,
+        ), // Efek redup di belakang modal
+        builder: (context) => const ScanModal(),
+      );
+    } else {
+      // Jika bukan mode home, jalankan aksi default
+      widget.onPrimaryAction();
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     final IconData primaryIcon = widget.mode == FloatingMenuMode.home
@@ -46,9 +65,9 @@ class _GlassFloatingMenuState extends State<GlassFloatingMenu> {
             width: size,
             height: isExpanded ? expandedHeight : size,
             decoration: BoxDecoration(
-              color: Colors.white.withOpacity(0.22),
+              color: Colors.white.withValues(alpha: 0.22),
               borderRadius: BorderRadius.circular(28),
-              border: Border.all(color: Colors.white.withOpacity(0.25)),
+              border: Border.all(color: Colors.white.withValues(alpha: 0.25)),
             ),
             child: Stack(
               alignment: Alignment.bottomCenter,
@@ -68,7 +87,7 @@ class _GlassFloatingMenuState extends State<GlassFloatingMenu> {
                   ),
                 ),
 
-                /// ===== PRIMARY =====
+                /// ===== PRIMARY (SCAN / HOME) =====
                 AnimatedPositioned(
                   duration: const Duration(milliseconds: 220),
                   top: isExpanded ? size : size,
@@ -76,19 +95,22 @@ class _GlassFloatingMenuState extends State<GlassFloatingMenu> {
                   right: 0,
                   child: _menuIcon(
                     icon: primaryIcon,
-                    onTap: () {
-                      setState(() => isExpanded = false);
-                      widget.onPrimaryAction();
-                    },
+                    onTap: _handlePrimaryAction, // Menggunakan handler baru
                   ),
                 ),
 
                 /// ===== TOGGLE =====
-                _menuIcon(
-                  icon: LucideIcons.moreVertical,
-                  onTap: () {
-                    setState(() => isExpanded = !isExpanded);
-                  },
+                // Posisinya statis di bawah (Stack paling atas)
+                Positioned(
+                  bottom: 0,
+                  left: 0,
+                  right: 0,
+                  child: _menuIcon(
+                    icon: isExpanded ? LucideIcons.x : LucideIcons.moreVertical,
+                    onTap: () {
+                      setState(() => isExpanded = !isExpanded);
+                    },
+                  ),
                 ),
               ],
             ),
@@ -106,6 +128,7 @@ class _GlassFloatingMenuState extends State<GlassFloatingMenu> {
         containedInkWell: true,
         radius: 28,
         customBorder: const CircleBorder(),
+        splashColor: Colors.white.withValues(alpha: 0.2),
         child: SizedBox(
           width: size,
           height: size,
