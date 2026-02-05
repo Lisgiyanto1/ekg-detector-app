@@ -2,7 +2,9 @@ import 'dart:io';
 
 import 'package:flutter/material.dart';
 import 'package:flutter_ekg_detector/features/scan/ekg_repository.dart';
+import 'package:flutter_ekg_detector/widgets/dropDown.dart';
 import 'package:flutter_ekg_detector/widgets/result_card.dart';
+import 'package:lucide_icons/lucide_icons.dart';
 
 class ResultScreen extends StatelessWidget {
   final EkgRecommendation data;
@@ -55,19 +57,31 @@ class ResultScreen extends StatelessWidget {
           SliverToBoxAdapter(
             child: ResultCard(title: data.label, label: data.label),
           ),
-
+          
           SliverToBoxAdapter(
-            child: _buildInfoCard(
-              "🏥 Tindak Lanjut",
-              data.medicine,
-              Icons.medical_services_outlined,
+            child: Padding(
+              padding: const EdgeInsets.only(top: 10),
+              child: CustomDropdownCard(
+                iconcheck: LucideIcons.checkCircle,
+                title: const Text("Tindak Lanjut", style: TextStyle(
+                  fontFamily: "Montserrat",
+                  fontWeight: FontWeight.w600,
+                  fontSize: 16
+                ),),
+                recommendation: data.treatment,
+              ),
             ),
           ),
           SliverToBoxAdapter(
-            child: _buildInfoCard(
-              "💊 Rekomendasi Obat",
-              data.medicine,
-              Icons.medication_outlined,
+            
+            child: CustomDropdownCard(
+              iconcheck: LucideIcons.checkCircle,
+              title: const Text("Rekomendasi Obat", style: TextStyle(
+                fontFamily: "Montserrat",
+                fontWeight: FontWeight.w600,
+                fontSize: 16
+              ),),
+              recommendation: data.medicine,
             ),
           ),
 

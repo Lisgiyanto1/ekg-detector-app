@@ -58,14 +58,14 @@ class ResultCard extends StatelessWidget {
                     top: 20,
                     left: 20,
                     right: 20,
-                    bottom: 15,
+                    bottom: 20,
                   ),
                   decoration: const BoxDecoration(
                     gradient: LinearGradient(
                       begin: Alignment.topCenter,
                       end: Alignment.bottomCenter,
                       colors: [
-                        Color.fromARGB(192, 158, 158, 158),
+                        Color.fromARGB(0, 158, 158, 158),
                         Color.fromARGB(255, 136, 136, 136),
                       ],
                     ),
@@ -85,7 +85,8 @@ class ResultCard extends StatelessWidget {
                             style: TextStyle(
                               fontFamily: "Montserrat",
                               fontSize: 20,
-                              fontWeight: FontWeight.w600,
+                              fontWeight: FontWeight.bold,
+                              color : const Color.fromARGB(255, 73, 73, 73)
                             ),
                           ),
                         ],
@@ -107,7 +108,7 @@ class ResultCard extends StatelessWidget {
                               ),
                             ),
                             child: Padding(
-                              padding: const EdgeInsets.all(10.0),
+                              padding: const EdgeInsets.all(20.0),
                               child: Column(
                                 spacing: 10,
                                 children: [
@@ -118,7 +119,7 @@ class ResultCard extends StatelessWidget {
                                         textAlign: TextAlign.left,
                                         style: TextStyle(
                                           fontFamily: "Montserrat",
-                                          fontSize: 30,
+                                          fontSize: 28,
                                           fontWeight: FontWeight.bold,
                                           color: const Color.fromARGB(
                                             255,
@@ -137,7 +138,7 @@ class ResultCard extends StatelessWidget {
                                       style: TextStyle(
                                         fontFamily: "Montserrat",
                                         fontWeight: FontWeight.bold,
-                                        fontSize: 25,
+                                        fontSize: 20,
                                         color: const Color.fromARGB(
                                           255,
                                           82,
