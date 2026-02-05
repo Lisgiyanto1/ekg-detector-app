@@ -1,0 +1,8 @@
+ekg_result;tindak_lanjut;obat_umum;pencegahan;tingkat_kedaruratan
+Normal;"Tidak perlu tindakan darurat; kontrol rutin bila ada faktor risiko";Tidak diperlukan;"Pola hidup sehat; olahraga teratur; berhenti merokok";Rendah
+STEMI Inferior;"Rujukan segera ke IGD; reperfusi (PCI/trombolitik); monitoring intensif";"Aspirin; antiplatelet; antikoagulan; statin; analgesik";"Taat obat; kontrol faktor risiko; rehabilitasi jantung";Tinggi
+STEMI Anterior;"Rujukan darurat ke cath lab; perawatan ICCU";"Aspirin; antiplatelet ganda; antikoagulan; ACE inhibitor; beta blocker; statin";"Modifikasi gaya hidup ketat; kontrol tekanan darah dan gula darah";Tinggi
+STEMI Septal;"Penanganan emergensi; evaluasi fungsi jantung (ECHO)";"Antiplatelet; antikoagulan; ACE inhibitor; statin; beta blocker";"Kontrol faktor risiko; follow-up kardiologi";Tinggi
+STEMI Lateral;"Reperfusi segera; monitoring aritmia";"Antiplatelet; antikoagulan; statin; beta blocker";"Diet rendah lemak dan garam; berhenti merokok";Tinggi
+Sinus Tachycardia;"Evaluasi penyebab (demam; stres; anemia); observasi";Tidak diperlukan / beta blocker bila simptomatik;"Hidrasi cukup; manajemen stres; batasi kafein";Sedang
+Sinus Bradycardia;"Evaluasi gejala; monitoring EKG";"Tidak diperlukan bila tanpa gejala; terapi sesuai indikasi";"Hindari obat pemicu; kontrol rutin";Sedang

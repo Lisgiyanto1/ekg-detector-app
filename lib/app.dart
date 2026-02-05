@@ -7,6 +7,9 @@ import 'package:flutter_ekg_detector/features/auth/auth_bloc.dart';
 import 'package:flutter_ekg_detector/features/auth/auth_repositorie.dart';
 import 'package:flutter_ekg_detector/features/auth/auth_state.dart';
 import 'package:flutter_ekg_detector/features/network/network-alert-controller.dart';
+import 'package:flutter_ekg_detector/features/scan/ekg_repository.dart';
+import 'package:flutter_ekg_detector/features/scan/scan_bloc.dart';
+import 'package:flutter_ekg_detector/features/scan/scan_event.dart';
 import 'package:flutter_ekg_detector/screens/screen_splash.dart';
 
 class MyApp extends StatefulWidget {
@@ -61,14 +64,39 @@ class _MyAppState extends State<MyApp> {
   }
 
   @override
+  @override
   Widget build(BuildContext context) {
-    return BlocProvider(
-      create: (_) => AuthBloc(AuthRepository())..add(AppStarted()),
-      child: MaterialApp(
-        navigatorKey: navigatorKey,
-        debugShowCheckedModeBanner: false,
-        theme: ThemeData(fontFamily: 'Montserrat', useMaterial3: true),
-        home: const SplashScreen(),
+    // 1. Gunakan MultiRepositoryProvider di level paling atas
+    return MultiRepositoryProvider(
+      providers: [
+        // Inject EkgRepository agar bisa dibaca oleh ScanBloc
+        RepositoryProvider<EkgRepository>(create: (context) => EkgRepository()),
+        // Opsional: Inject AuthRepository juga agar konsisten
+        RepositoryProvider<AuthRepository>(
+          create: (context) => AuthRepository(),
+        ),
+      ],
+      child: MultiBlocProvider(
+        providers: [
+          BlocProvider<AuthBloc>(
+            // Sekarang kita bisa baca AuthRepository dari context juga (Best Practice)
+            // atau tetap pakai 'AuthRepository()' manual seperti kode lama Anda juga boleh.
+            create: (context) =>
+                AuthBloc(context.read<AuthRepository>())..add(AppStarted()),
+          ),
+          BlocProvider<ScanBloc>(
+            // 2. Sekarang context.read<EkgRepository>() akan BERHASIL
+            // karena sudah disediakan oleh RepositoryProvider di atasnya
+            create: (context) =>
+                ScanBloc(context.read<EkgRepository>())..add(InitModel()),
+          ),
+        ],
+        child: MaterialApp(
+          navigatorKey: navigatorKey,
+          debugShowCheckedModeBanner: false,
+          theme: ThemeData(fontFamily: 'Montserrat', useMaterial3: true),
+          home: const SplashScreen(),
+        ),
       ),
     );
   }

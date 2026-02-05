@@ -1,6 +1,12 @@
 import 'package:camera/camera.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:flutter_bloc/flutter_bloc.dart';
+import 'package:flutter_ekg_detector/features/scan/scan_bloc.dart';
+import 'package:flutter_ekg_detector/features/scan/scan_event.dart';
+import 'package:flutter_ekg_detector/features/scan/scan_state.dart';
+import 'package:flutter_ekg_detector/screens/screen_result.dart';
+import 'package:flutter_ekg_detector/widgets/alert_scan_error.dart';
 import 'package:lottie/lottie.dart';
 import 'package:lucide_icons/lucide_icons.dart';
 
@@ -14,7 +20,8 @@ class ScanScreen extends StatefulWidget {
 class _ScanScreenState extends State<ScanScreen> with WidgetsBindingObserver {
   CameraController? _controller;
   Future<void>? _initializeControllerFuture;
-  bool _isScanning = false;
+
+  bool _isDelayingAnimation = false;
 
   @override
   void initState() {
@@ -35,7 +42,6 @@ class _ScanScreenState extends State<ScanScreen> with WidgetsBindingObserver {
     final CameraController? cameraController = _controller;
     if (cameraController == null || !cameraController.value.isInitialized)
       return;
-
     if (state == AppLifecycleState.inactive) {
       cameraController.dispose();
     } else if (state == AppLifecycleState.resumed) {
@@ -47,14 +53,12 @@ class _ScanScreenState extends State<ScanScreen> with WidgetsBindingObserver {
     try {
       final cameras = await availableCameras();
       if (cameras.isEmpty) return;
-
       _controller = CameraController(
         cameras.first,
         ResolutionPreset.high,
         enableAudio: false,
         imageFormatGroup: ImageFormatGroup.jpeg,
       );
-
       _initializeControllerFuture = _controller!.initialize().then((_) {
         if (!mounted) return;
         setState(() {});
@@ -65,192 +69,231 @@ class _ScanScreenState extends State<ScanScreen> with WidgetsBindingObserver {
     }
   }
 
-  /// Fungsi Scanner
-  Future<void> _handleScan() async {
+  /// Fungsi Scanner yang dimodifikasi untuk BLoC
+  Future<void> _handleScan(BuildContext context) async {
     if (_controller == null || !_controller!.value.isInitialized) return;
 
-    setState(() => _isScanning = true);
-
     try {
-      // Simulasi delay scan 2 detik
-      await Future.delayed(const Duration(seconds: 2));
       final XFile image = await _controller!.takePicture();
 
-      if (!mounted) return;
-      setState(() => _isScanning = false);
-
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text("Captured: ${image.path}"),
-          backgroundColor: Colors.green,
-          behavior: SnackBarBehavior.floating,
-        ),
-      );
+      // KIRIM EVENT KE BLOC
+      context.read<ScanBloc>().add(AnalyzeImage(image.path));
     } catch (e) {
-      debugPrint("Error: $e");
-      if (mounted) setState(() => _isScanning = false);
+      debugPrint("Error capture: $e");
     }
   }
 
   @override
   Widget build(BuildContext context) {
     final size = MediaQuery.of(context).size;
-
-    // 1. TENTUKAN UKURAN & POSISI SECARA MATEMATIS
-    // Ini memastikan Lottie dan Polygon punya koordinat pixel yang 100% sama.
-    final double scanWidth = size.width * 0.75; // Lebar 75% layar
-    final double scanHeight = size.width * 1.05; // Tinggi proporsional
-
-    // Hitung titik pojok kiri atas (x, y) agar kotak berada persis di tengah
+    final double scanWidth = size.width * 0.75;
+    final double scanHeight = size.width * 1.05;
     final double scanLeft = (size.width - scanWidth) / 2;
     final double scanTop = (size.height - scanHeight) / 2;
 
     return Scaffold(
       backgroundColor: Colors.black,
-      body: FutureBuilder<void>(
-        future: _initializeControllerFuture,
-        builder: (context, snapshot) {
-          if (snapshot.connectionState == ConnectionState.done &&
-              _controller != null &&
-              _controller!.value.isInitialized) {
-            return Stack(
-              fit: StackFit.expand,
-              children: [
-                /// LAYER 1: KAMERA
-                CameraPreview(_controller!),
+      body: BlocConsumer<ScanBloc, ScanState>(
+        listener: (context, state) async {
+          // Ubah jadi async
+          if (state is ScanSuccess) {
+            // 1. Saat data sukses didapat, paksa animasi tetap tampil
+            setState(() {
+              _isDelayingAnimation = true;
+            });
 
-                /// LAYER 2: ANIMASI LOTTIE (Posisi Presisi)
-                // Menggunakan Positioned dengan koordinat yang sama persis dengan Painter
-                if (_isScanning)
-                  Positioned(
-                    left: scanLeft,
-                    top: scanTop,
-                    width: scanWidth,
-                    height: scanHeight,
-                    child: Lottie.asset(
-                      'assets/lottie/scanner.json',
-                      // BoxFit.fill memaksa animasi melebar ke seluruh sudut kotak
-                      fit: BoxFit.fill,
-                      repeat: true,
-                    ),
-                  ),
+            // 2. Tahan selama durasi animasi (misal 3 detik)
+            await Future.delayed(const Duration(seconds: 3));
 
-                /// LAYER 3: OVERLAY POLYGON (Painter)
-                CustomPaint(
-                  painter: ScannerOverlayPainter(
-                    scanWidth: scanWidth,
-                    scanHeight: scanHeight,
-                  ),
-                  child: Container(),
+            if (!mounted) return;
+
+            // 3. Matikan animasi paksa sebelum navigasi
+            setState(() {
+              _isDelayingAnimation = false;
+            });
+
+            // 4. Navigasi ke ResultScreen
+            // Gunakan 'await' agar kode di bawahnya jalan setelah user kembali (back)
+            await Navigator.push(
+              context,
+              MaterialPageRoute(
+                builder: (context) => ResultScreen(
+                  data: state.result,
+                  imagePath: state.imagePath,
                 ),
-
-                /// LAYER 4: HEADER
-                Positioned(
-                  top: MediaQuery.of(context).padding.top + 10,
-                  left: 0,
-                  right: 0,
-                  child: Row(
-                    children: [
-                      IconButton(
-                        onPressed: () => Navigator.pop(context),
-                        icon: const Icon(Icons.arrow_back, color: Colors.white),
-                      ),
-                      const Spacer(),
-                      const Text(
-                        "Scan Grafik Elektrokardiogram",
-                        style: TextStyle(
-                          color: Colors.white,
-                          fontSize: 18,
-                          fontWeight: FontWeight.w600,
-                        ),
-                      ),
-                      const Spacer(),
-                      const SizedBox(width: 48),
-                    ],
-                  ),
-                ),
-
-                /// LAYER 5: HINT TEXT
-                if (!_isScanning)
-                  Positioned(
-                    bottom: 160,
-                    left: 0,
-                    right: 0,
-                    child: Center(
-                      child: Container(
-                        padding: const EdgeInsets.symmetric(
-                          horizontal: 12,
-                          vertical: 6,
-                        ),
-                        decoration: BoxDecoration(
-                          color: Colors.black.withOpacity(0.5),
-                          borderRadius: BorderRadius.circular(8),
-                        ),
-                        child: const Text(
-                          "Posisikan dengan presisi pada seluruh sisi objek",
-                          textAlign: TextAlign.center,
-                          style: TextStyle(color: Colors.white, fontSize: 14),
-                        ),
-                      ),
-                    ),
-                  ),
-
-                /// LAYER 6: TOMBOL SCAN
-                Positioned(
-                  bottom: 50,
-                  left: 0,
-                  right: 0,
-                  child: Center(
-                    child: GestureDetector(
-                      onTap: _isScanning ? null : _handleScan,
-                      child: Container(
-                        width: 80,
-                        height: 80,
-                        decoration: BoxDecoration(
-                          color: Colors.white.withOpacity(0.2),
-                          shape: BoxShape.circle,
-                          border: Border.all(color: Colors.white, width: 4),
-                        ),
-                        child: Center(
-                          child: _isScanning
-                              ? const SizedBox(
-                                  width: 30,
-                                  height: 30,
-                                  child: CircularProgressIndicator(
-                                    color: Colors.white,
-                                    strokeWidth: 3,
-                                  ),
-                                )
-                              : Container(
-                                  width: 60,
-                                  height: 60,
-                                  decoration: const BoxDecoration(
-                                    color: Colors.white,
-                                    shape: BoxShape.circle,
-                                  ),
-                                  child: const Icon(
-                                    LucideIcons.scan,
-                                    color: Colors.black,
-                                    size: 30,
-                                  ),
-                                ),
-                        ),
-                      ),
-                    ),
-                  ),
-                ),
-              ],
+              ),
             );
-          } else {
-            return const Center(
-              child: CircularProgressIndicator(color: Colors.white),
-            );
+
+            // Opsional: Reset Bloc agar bersih saat kembali
+            // context.read<ScanBloc>().add(InitModel());
+          } else if (state is ScanError) {
+            // Pastikan animasi mati jika error
+            setState(() {
+              _isDelayingAnimation = false;
+            });
+            AlertScanError.show(context, state.message);
           }
+        },
+        builder: (context, state) {
+          // LOGIKA PENTING:
+          // Tampilkan animasi jika Bloc sedang Loading ATAU kita sedang menahan (Delaying)
+          bool showLottie = state is ScanLoading || _isDelayingAnimation;
+
+          return FutureBuilder<void>(
+            future: _initializeControllerFuture,
+            builder: (context, snapshot) {
+              if (snapshot.connectionState == ConnectionState.done &&
+                  _controller != null &&
+                  _controller!.value.isInitialized) {
+                return Stack(
+                  fit: StackFit.expand,
+                  children: [
+                    /// LAYER 1: KAMERA
+                    CameraPreview(_controller!),
+
+                    /// LAYER 2: ANIMASI LOTTIE
+                    // Gunakan variabel showLottie yang baru
+                    if (showLottie)
+                      Positioned(
+                        left: scanLeft,
+                        top: scanTop,
+                        width: scanWidth,
+                        height: scanHeight,
+                        child: Lottie.asset(
+                          'assets/lottie/scanner.json',
+                          fit: BoxFit.fill,
+                          repeat: true, // Biarkan looping selama delay
+                        ),
+                      ),
+
+                    /// LAYER 3: OVERLAY POLYGON
+                    CustomPaint(
+                      painter: ScannerOverlayPainter(
+                        scanWidth: scanWidth,
+                        scanHeight: scanHeight,
+                      ),
+                      child: Container(),
+                    ),
+
+                    /// LAYER 4: HEADER
+                    Positioned(
+                      top: MediaQuery.of(context).padding.top + 10,
+                      left: 0,
+                      right: 0,
+                      child: Row(
+                        children: [
+                          IconButton(
+                            onPressed: () => Navigator.pop(context),
+                            icon: const Icon(
+                              Icons.arrow_back,
+                              color: Colors.white,
+                            ),
+                          ),
+                          const Spacer(),
+                          const Text(
+                            "Scan Grafik Elektrokardiogram",
+                            style: TextStyle(
+                              color: Colors.white,
+                              fontSize: 18,
+                              fontWeight: FontWeight.w600,
+                            ),
+                          ),
+                          const Spacer(),
+                          const SizedBox(width: 48),
+                        ],
+                      ),
+                    ),
+
+                    /// LAYER 5: HINT TEXT
+                    // Sembunyikan hint text jika animasi sedang jalan
+                    if (!showLottie)
+                      Positioned(
+                        bottom: 160,
+                        left: 0,
+                        right: 0,
+                        child: Center(
+                          child: Container(
+                            padding: const EdgeInsets.symmetric(
+                              horizontal: 12,
+                              vertical: 6,
+                            ),
+                            decoration: BoxDecoration(
+                              color: Colors.black.withOpacity(0.5),
+                              borderRadius: BorderRadius.circular(8),
+                            ),
+                            child: const Text(
+                              "Posisikan dengan presisi pada seluruh sisi objek",
+                              textAlign: TextAlign.center,
+                              style: TextStyle(
+                                color: Colors.white,
+                                fontSize: 14,
+                              ),
+                            ),
+                          ),
+                        ),
+                      ),
+
+                    /// LAYER 6: TOMBOL SCAN
+                    Positioned(
+                      bottom: 50,
+                      left: 0,
+                      right: 0,
+                      child: Center(
+                        child: GestureDetector(
+                          // Disable tombol jika sedang animasi
+                          onTap: showLottie ? null : () => _handleScan(context),
+                          child: Container(
+                            width: 80,
+                            height: 80,
+                            decoration: BoxDecoration(
+                              color: Colors.white.withOpacity(0.2),
+                              shape: BoxShape.circle,
+                              border: Border.all(color: Colors.white, width: 4),
+                            ),
+                            child: Center(
+                              child: showLottie
+                                  ? const SizedBox(
+                                      width: 30,
+                                      height: 30,
+                                      child: CircularProgressIndicator(
+                                        color: Colors.white,
+                                        strokeWidth: 3,
+                                      ),
+                                    )
+                                  : Container(
+                                      width: 60,
+                                      height: 60,
+                                      decoration: const BoxDecoration(
+                                        color: Colors.white,
+                                        shape: BoxShape.circle,
+                                      ),
+                                      child: const Icon(
+                                        LucideIcons.scan,
+                                        color: Colors.black,
+                                        size: 30,
+                                      ),
+                                    ),
+                            ),
+                          ),
+                        ),
+                      ),
+                    ),
+                  ],
+                );
+              } else {
+                return const Center(
+                  child: CircularProgressIndicator(color: Colors.white),
+                );
+              }
+            },
+          );
         },
       ),
     );
   }
 }
+
+// ... Class ScannerOverlayPainter TETAP SAMA seperti kode Anda ...
 
 /// ===== CUSTOM PAINTER =====
 class ScannerOverlayPainter extends CustomPainter {

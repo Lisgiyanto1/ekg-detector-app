@@ -1,0 +1,8 @@
+Normal
+STEMI-Anterior
+STEMI-Inferior
+STEMI-Lateral
+STEMI-Septal
+Sinus-Bradycardia
+Sinus-Tachycardia
+background

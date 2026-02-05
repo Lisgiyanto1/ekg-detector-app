@@ -23,96 +23,150 @@ class GlassFloatingMenu extends StatefulWidget {
 }
 
 class _GlassFloatingMenuState extends State<GlassFloatingMenu> {
-  bool isExpanded = false;
-
   static const double size = 56;
   static const double expandedHeight = 168;
+  static const double margin = 24;
+
+  Offset? position;
+  bool isExpanded = false;
+  bool expandDown = true;
+
+  /* ================= INIT ================= */
+
+  void _ensureInitialPosition(Size screen) {
+    position ??= Offset(
+      screen.width - size - margin,
+      screen.height - size - margin,
+    );
+  }
+
+  void _recalculateExpandDirection(Size screen) {
+    final double topSpace = position!.dy;
+    final double bottomSpace = screen.height - (position!.dy + size);
+
+    expandDown =
+        bottomSpace >= (expandedHeight - size) || bottomSpace >= topSpace;
+  }
+
+  /* ================= ACTION ================= */
+
+  void _handleToggle(Size screen) {
+    setState(() {
+      _recalculateExpandDirection(screen);
+      isExpanded = !isExpanded;
+    });
+  }
 
   void _handlePrimaryAction() {
     setState(() => isExpanded = false);
 
-    // LOGIKA TAMBAHAN: Tampilkan Modal jika di mode home (Scan)
     if (widget.mode == FloatingMenuMode.home) {
       showDialog(
         context: context,
-        barrierColor: Colors.black.withValues(
-          alpha: 0.5,
-        ), // Efek redup di belakang modal
-        builder: (context) => const ScanModal(),
+        barrierColor: Colors.black.withValues(alpha: 0.5),
+        builder: (_) => const ScanModal(),
       );
     } else {
-      // Jika bukan mode home, jalankan aksi default
       widget.onPrimaryAction();
     }
   }
 
+  /* ================= UI ================= */
+
   @override
   Widget build(BuildContext context) {
+    final rootContext = Navigator.of(context, rootNavigator: true).context;
+
+    final Size screen = MediaQuery.of(rootContext).size;
+
+    _ensureInitialPosition(screen);
+
+    final double effectiveTop = isExpanded && !expandDown
+        ? position!.dy - (expandedHeight - size)
+        : position!.dy;
+
     final IconData primaryIcon = widget.mode == FloatingMenuMode.home
         ? LucideIcons.scan
         : LucideIcons.home;
 
     return Positioned(
-      bottom: 24,
-      right: 24,
-      child: ClipRRect(
-        borderRadius: BorderRadius.circular(28),
-        child: BackdropFilter(
-          filter: ImageFilter.blur(sigmaX: 14, sigmaY: 14),
-          child: AnimatedContainer(
-            duration: const Duration(milliseconds: 260),
-            curve: Curves.easeOut,
-            width: size,
-            height: isExpanded ? expandedHeight : size,
-            decoration: BoxDecoration(
-              color: Colors.white.withValues(alpha: 0.22),
-              borderRadius: BorderRadius.circular(28),
-              border: Border.all(color: Colors.white.withValues(alpha: 0.25)),
-            ),
-            child: Stack(
-              alignment: Alignment.bottomCenter,
-              children: [
-                /// ===== LOGOUT =====
-                AnimatedPositioned(
-                  duration: const Duration(milliseconds: 220),
-                  top: isExpanded ? 0 : size,
-                  left: 0,
-                  right: 0,
-                  child: _menuIcon(
-                    icon: LucideIcons.logOut,
-                    onTap: () {
-                      setState(() => isExpanded = false);
-                      widget.onLogout();
-                    },
-                  ),
-                ),
+      top: effectiveTop,
+      left: position!.dx,
+      child: GestureDetector(
+        onPanUpdate: (details) {
+          setState(() {
+            double newX = position!.dx + details.delta.dx;
+            double newY = position!.dy + details.delta.dy;
 
-                /// ===== PRIMARY (SCAN / HOME) =====
-                AnimatedPositioned(
-                  duration: const Duration(milliseconds: 220),
-                  top: isExpanded ? size : size,
-                  left: 0,
-                  right: 0,
-                  child: _menuIcon(
-                    icon: primaryIcon,
-                    onTap: _handlePrimaryAction, // Menggunakan handler baru
-                  ),
-                ),
+            newX = newX.clamp(0, screen.width - size);
+            newY = newY.clamp(0, screen.height - size);
 
-                /// ===== TOGGLE =====
-                // Posisinya statis di bawah (Stack paling atas)
-                Positioned(
-                  bottom: 0,
-                  left: 0,
-                  right: 0,
-                  child: _menuIcon(
-                    icon: isExpanded ? LucideIcons.x : LucideIcons.moreVertical,
-                    onTap: () {
-                      setState(() => isExpanded = !isExpanded);
-                    },
+            position = Offset(newX, newY);
+
+            if (isExpanded) {
+              _recalculateExpandDirection(screen);
+            }
+          });
+        },
+        child: ClipRRect(
+          borderRadius: BorderRadius.circular(28),
+          child: BackdropFilter(
+            filter: ImageFilter.blur(sigmaX: 14, sigmaY: 14),
+            child: AnimatedContainer(
+              duration: const Duration(milliseconds: 260),
+              width: size,
+              height: isExpanded ? expandedHeight : size,
+              decoration: BoxDecoration(
+                color: Colors.white.withValues(alpha: 0.22),
+                borderRadius: BorderRadius.circular(28),
+                border: Border.all(color: Colors.white.withValues(alpha: 0.25)),
+              ),
+              child: Stack(
+                alignment: expandDown
+                    ? Alignment.bottomCenter
+                    : Alignment.topCenter,
+                children: [
+                  /// LOGOUT
+                  AnimatedPositioned(
+                    duration: const Duration(milliseconds: 220),
+                    top: expandDown ? size * 2 : null,
+                    bottom: expandDown ? null : size * 2,
+                    left: 0,
+                    right: 0,
+                    child: _menuIcon(
+                      icon: LucideIcons.logOut,
+                      onTap: widget.onLogout,
+                    ),
                   ),
-                ),
-              ],
+
+                  /// PRIMARY
+                  AnimatedPositioned(
+                    duration: const Duration(milliseconds: 220),
+                    top: expandDown ? size : null,
+                    bottom: expandDown ? null : size,
+                    left: 0,
+                    right: 0,
+                    child: _menuIcon(
+                      icon: primaryIcon,
+                      onTap: _handlePrimaryAction,
+                    ),
+                  ),
+
+                  /// TOGGLE
+                  Positioned(
+                    top: expandDown ? 0 : null,
+                    bottom: expandDown ? null : 0,
+                    left: 0,
+                    right: 0,
+                    child: _menuIcon(
+                      icon: isExpanded
+                          ? LucideIcons.x
+                          : LucideIcons.moreVertical,
+                      onTap: () => _handleToggle(screen),
+                    ),
+                  ),
+                ],
+              ),
             ),
           ),
         ),
@@ -125,15 +179,10 @@ class _GlassFloatingMenuState extends State<GlassFloatingMenu> {
       type: MaterialType.transparency,
       child: InkResponse(
         onTap: onTap,
-        containedInkWell: true,
         radius: 28,
         customBorder: const CircleBorder(),
         splashColor: Colors.white.withValues(alpha: 0.2),
-        child: SizedBox(
-          width: size,
-          height: size,
-          child: Icon(icon, size: 22, color: Colors.black87),
-        ),
+        child: SizedBox(width: size, height: size, child: Icon(icon, size: 22)),
       ),
     );
   }

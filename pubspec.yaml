@@ -48,6 +48,9 @@ dependencies:
   connectivity_plus: ^7.0.0
   flutter_dotenv: ^6.0.0
   camera: ^0.11.3
+  tflite_flutter: ^0.12.1
+  csv: ^6.0.0
+  image: ^4.7.2
 
 dev_dependencies:
   flutter_test:
@@ -86,6 +89,9 @@ flutter:
     - assets/lottie/loading.json
     - assets/lottie/logout.json
     - assets/lottie/scanner.json
+    - assets/model/model_ekg.tflite
+    - assets/model/labels.txt
+    - assets/model/data_rekomendasi.csv
     - .env
   #   - images/a_dot_ham.jpeg
 
