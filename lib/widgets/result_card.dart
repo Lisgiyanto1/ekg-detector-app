@@ -6,7 +6,13 @@ import 'package:lucide_icons/lucide_icons.dart';
 class ResultCard extends StatelessWidget {
   final String title;
   final String label;
-  const ResultCard({super.key, required this.title, required this.label});
+  final String textGreet;
+  const ResultCard({
+    super.key,
+    required this.textGreet,
+    required this.title,
+    required this.label,
+  });
 
   @override
   Widget build(BuildContext context) {
@@ -78,6 +84,7 @@ class ResultCard extends StatelessWidget {
                           Icon(
                             LucideIcons.brainCircuit,
                             fontWeight: FontWeight.w600,
+                            color: const Color.fromARGB(255, 61, 61, 61),
                           ),
 
                           Text(
@@ -86,7 +93,7 @@ class ResultCard extends StatelessWidget {
                               fontFamily: "Montserrat",
                               fontSize: 20,
                               fontWeight: FontWeight.bold,
-                              color : const Color.fromARGB(255, 73, 73, 73)
+                              color: const Color.fromARGB(255, 73, 73, 73),
                             ),
                           ),
                         ],
@@ -134,7 +141,7 @@ class ResultCard extends StatelessWidget {
 
                                   Center(
                                     child: Text(
-                                      '"HASIL ANDA NORMAL BOSS HIDUP SEHAT YAA"',
+                                      '"$textGreet"',
                                       style: TextStyle(
                                         fontFamily: "Montserrat",
                                         fontWeight: FontWeight.bold,

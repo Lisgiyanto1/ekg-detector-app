@@ -1,4 +1,5 @@
 import 'dart:io';
+import 'dart:ui';
 
 import 'package:flutter/material.dart';
 import 'package:flutter_ekg_detector/features/scan/ekg_repository.dart';
@@ -15,15 +16,18 @@ class ResultScreen extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final expandHeight = 160.0;
-    final double widthScreen = MediaQuery.of(context).size.width;
-    // Tentukan warna berdasarkan tingkat kedaruratan
+
     Color statusColor = Colors.green;
+    String text = "Hasil Sehat, Selamat Pertahankan dan Jaga Kesehatan Ya ....";
+
     if (data.urgency.toLowerCase().contains("sedang")) {
       statusColor = Colors.orange;
+      text = "Hasil Lumayan Sehat Tetap Perhatikan Pola Hidup Sehat.";
     }
     if (data.urgency.toLowerCase().contains("tinggi") ||
         data.urgency.toLowerCase().contains("darurat")) {
       statusColor = Colors.red;
+      text = "Hasil Bahaya. Harap Perhatikan Rekomendasi di Bawah ini";
     }
 
     return Scaffold(
@@ -39,7 +43,8 @@ class ResultScreen extends StatelessWidget {
                 style: TextStyle(
                   fontFamily: 'Montserrat',
                   fontWeight: FontWeight.bold,
-                  color: Colors.white,
+                  fontSize: 10,
+                  color: const Color.fromARGB(199, 247, 247, 247),
                 ),
                 textAlign: TextAlign.start,
               ),
@@ -55,41 +60,127 @@ class ResultScreen extends StatelessWidget {
           ),
 
           SliverToBoxAdapter(
-            child: ResultCard(title: data.label, label: data.label),
-          ),
-          
-          SliverToBoxAdapter(
-            child: Padding(
-              padding: const EdgeInsets.only(top: 10),
-              child: CustomDropdownCard(
-                iconcheck: LucideIcons.checkCircle,
-                title: const Text("Tindak Lanjut", style: TextStyle(
-                  fontFamily: "Montserrat",
-                  fontWeight: FontWeight.w600,
-                  fontSize: 16
-                ),),
-                recommendation: data.treatment,
+            child: Container(
+              decoration: BoxDecoration(
+                gradient: LinearGradient(
+                  begin: Alignment.topCenter,
+                  end: Alignment.bottomCenter,
+                  colors: [Color.fromARGB(0, 0, 0, 0), statusColor],
+                ),
               ),
-            ),
-          ),
-          SliverToBoxAdapter(
-            
-            child: CustomDropdownCard(
-              iconcheck: LucideIcons.checkCircle,
-              title: const Text("Rekomendasi Obat", style: TextStyle(
-                fontFamily: "Montserrat",
-                fontWeight: FontWeight.w600,
-                fontSize: 16
-              ),),
-              recommendation: data.medicine,
-            ),
-          ),
+              child: Stack(
+                children: [
+                  Padding(
+                    padding: const EdgeInsets.only(top:300, right: 20, left: 20, bottom: 30),
+                    child: ClipRRect(
+                      borderRadius: BorderRadius.circular(20),
+                      child: BackdropFilter(
+                        filter: ImageFilter.blur(sigmaX: 14, sigmaY: 14),
+                        child: Padding(
+                          padding: const EdgeInsets.all(0.0),
+                          child: Container(
+                            decoration: BoxDecoration(
+                              color: const Color.fromARGB(
+                                255,
+                                226,
+                                226,
+                                226,
+                              ).withValues(alpha: 0.25),
+                              borderRadius: BorderRadius.circular(20),
+                              border: Border.all(
+                                color: Colors.white.withValues(alpha: 0.25),
+                              ),
+                            ),
+                            child: Padding(
+                              padding: const EdgeInsets.only(top: 30, bottom: 30),
+                              child: Column(
+                                spacing: 20,
+                                children: [
+                                  Padding(
+                                    padding: const EdgeInsets.only(left: 30),
+                                    child: Row(
+                                      spacing: 15,
+                                      children: [
+                                        Icon(
+                                          Icons.medical_services_outlined,
+                                          fontWeight: FontWeight.w600,
+                                          size: 30,
+                                          color: const Color.fromARGB(255, 59, 59, 59),
+                                        ),
+                                        Text(
+                                          "Anjuran",
+                                          style: TextStyle(
+                                            color: const Color.fromARGB(
+                                              255,
+                                              56,
+                                              56,
+                                              56,
+                                            ),
+                                            fontFamily: "Montserrat",
+                                            fontSize: 30,
+                                            fontWeight: FontWeight.bold,
+                                          ),
+                                        ),
+                                      ],
+                                    ),
+                                  ),
+                                  SizedBox(height: 0),
+                                  CustomDropdownCard(
+                                    iconcheck: LucideIcons.checkCircle,
+                                    title: const Text(
+                                      "Tindak Lanjut",
+                                      style: TextStyle(
+                                        fontFamily: "Montserrat",
+                                        fontWeight: FontWeight.w600,
+                                        fontSize: 16,
+                                      ),
+                                    ),
+                                    recommendation: data.treatment,
+                                  ),
+                    
+                                  CustomDropdownCard(
+                                    iconcheck: LucideIcons.checkCircle,
+                                    title: const Text(
+                                      "Rekomendasi Obat",
+                                      style: TextStyle(
+                                        fontFamily: "Montserrat",
+                                        fontWeight: FontWeight.w600,
+                                        fontSize: 16,
+                                      ),
+                                    ),
+                                    recommendation: data.medicine,
+                                  ),
+                    
+                                  CustomDropdownCard(
+                                    iconcheck: LucideIcons.checkCircle,
+                                    title: const Text(
+                                      "Pencegahan",
+                                      style: TextStyle(
+                                        fontFamily: "Montserrat",
+                                        fontWeight: FontWeight.w600,
+                                        fontSize: 16,
+                                      ),
+                                    ),
+                                    recommendation: data.prevention,
+                                  ),
+                                ],
+                              ),
+                            ),
+                          ),
+                        ),
+                      ),
+                    ),
+                  ),
 
-          SliverToBoxAdapter(
-            child: _buildInfoCard(
-              "🛡️ Pencegahan",
-              data.prevention,
-              Icons.shield_outlined,
+                  Positioned(
+                    child: ResultCard(
+                      title: data.label,
+                      label: data.label,
+                      textGreet: text,
+                    ),
+                  ),
+                ],
+              ),
             ),
           ),
 

@@ -6,11 +6,13 @@ class CustomDropdownCard extends StatefulWidget {
   final Widget title;
   final String recommendation;
 
+
   const CustomDropdownCard({
     super.key,
     required this.iconcheck,
     required this.title,
     required this.recommendation,
+  
   });
 
   @override
@@ -39,7 +41,7 @@ class _CustomDropdownCardState extends State<CustomDropdownCard>
       margin: const EdgeInsets.symmetric(vertical: 0),
       padding: const EdgeInsets.only(right: 30, left: 30),
       decoration: BoxDecoration(
-        color: const Color(0xFFFFE3E0), // warna seperti contoh
+        color: const Color.fromARGB(0, 255, 227, 224), // warna seperti contoh
         borderRadius: BorderRadius.circular(12),
       ),
       child: Stack(
@@ -52,7 +54,7 @@ class _CustomDropdownCardState extends State<CustomDropdownCard>
                 mainAxisAlignment: MainAxisAlignment.start,
                 children: [Icon(widget.iconcheck), widget.title],
               ),
-              const Divider(thickness: 1, indent: 35.0,),
+              const Divider(thickness: 1, indent: 35.0),
             ],
           ),
 
@@ -122,13 +124,16 @@ class _CustomDropdownCardState extends State<CustomDropdownCard>
                                   bottomLeft: Radius.circular(12),
                                   bottomRight: Radius.circular(12),
                                 ),
-                                color: Colors.grey,
+                                color: const Color.fromARGB(126, 185, 185, 185),
                               ),
                               child: Center(
                                 child: AnimatedRotation(
                                   turns: isExpanded ? 0.5 : 0.0,
                                   duration: const Duration(milliseconds: 250),
-                                  child: const Icon(LucideIcons.listFilter),
+                                  child: const Icon(
+                                    LucideIcons.listFilter,
+                                    color: Color.fromARGB(255, 102, 102, 102),
+                                  ),
                                 ),
                               ),
                             ),
