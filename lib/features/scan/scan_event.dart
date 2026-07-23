@@ -7,3 +7,8 @@ class AnalyzeImage extends ScanEvent {
   final String imagePath;
   AnalyzeImage(this.imagePath);
 }
+
+class LoadStatistics extends ScanEvent {}
+
+// Tambahkan ini
+class ResetScan extends ScanEvent {}

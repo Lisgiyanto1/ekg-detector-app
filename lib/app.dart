@@ -8,8 +8,10 @@ import 'package:flutter_ekg_detector/features/auth/auth_repositorie.dart';
 import 'package:flutter_ekg_detector/features/auth/auth_state.dart';
 import 'package:flutter_ekg_detector/features/network/network-alert-controller.dart';
 import 'package:flutter_ekg_detector/features/scan/ekg_repository.dart';
+import 'package:flutter_ekg_detector/features/scan/savescan_repository.dart';
 import 'package:flutter_ekg_detector/features/scan/scan_bloc.dart';
 import 'package:flutter_ekg_detector/features/scan/scan_event.dart';
+import 'package:flutter_ekg_detector/features/scan/statistic_service.dart';
 import 'package:flutter_ekg_detector/screens/screen_splash.dart';
 
 class MyApp extends StatefulWidget {
@@ -75,6 +77,14 @@ class _MyAppState extends State<MyApp> {
         RepositoryProvider<AuthRepository>(
           create: (context) => AuthRepository(),
         ),
+
+        RepositoryProvider<SaveScanRepository>(
+          create: (context) => SaveScanRepository(),
+        ),
+
+        RepositoryProvider<StatisticsService>(
+          create: (context) => StatisticsService(),
+        ),
       ],
       child: MultiBlocProvider(
         providers: [
@@ -87,8 +97,11 @@ class _MyAppState extends State<MyApp> {
           BlocProvider<ScanBloc>(
             // 2. Sekarang context.read<EkgRepository>() akan BERHASIL
             // karena sudah disediakan oleh RepositoryProvider di atasnya
-            create: (context) =>
-                ScanBloc(context.read<EkgRepository>())..add(InitModel()),
+            create: (context) => ScanBloc(
+              context.read<EkgRepository>(),
+              context.read<SaveScanRepository>(),
+              context.read<StatisticsService>(),
+            )..add(InitModel()),
           ),
         ],
         child: MaterialApp(

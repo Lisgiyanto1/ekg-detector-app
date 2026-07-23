@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import 'package:lucide_icons/lucide_icons.dart';
+import 'package:lucide_icons_flutter/lucide_icons.dart';
 
 class CustomDropdownCard extends StatefulWidget {
   final IconData iconcheck;
@@ -88,7 +88,7 @@ class _CustomDropdownCardState extends State<CustomDropdownCard>
                                       Expanded(
                                         child: Text(
                                           e,
-                                          style: const TextStyle(fontSize: 13),
+                                          style: const TextStyle(fontSize: 15),
                                         ),
                                       ),
                                     ],

@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_ekg_detector/screens/screen_scan.dart';
-import 'package:lucide_icons/lucide_icons.dart';
+import 'package:lucide_icons_flutter/lucide_icons.dart';
 
 class ScanModal extends StatelessWidget {
   const ScanModal({super.key});
@@ -18,19 +18,12 @@ class ScanModal extends StatelessWidget {
           children: [
             /// ===== 1. CARD BACKGROUND (DIPOTONG) =====
             Padding(
-              // Beri padding bawah agar card tidak terpotong habis oleh tombol
-              // Padding ini harus <= notchDepth di clipper
               padding: const EdgeInsets.only(bottom: 0),
               child: ClipPath(
                 clipper: BottomRoundedRectClipper(),
                 child: Container(
                   width: double.infinity,
-                  padding: const EdgeInsets.fromLTRB(
-                    20,
-                    32,
-                    20,
-                    60,
-                  ), // Bottom padding lebih besar untuk ruang cekungan
+                  padding: const EdgeInsets.fromLTRB(20, 32, 20, 60),
                   decoration: const BoxDecoration(color: Color(0xFFE5E7EB)),
                   child: Column(
                     mainAxisSize: MainAxisSize.min,
@@ -92,9 +85,7 @@ class ScanModal extends StatelessWidget {
                                   color: Colors.greenAccent,
                                   boxShadow: [
                                     BoxShadow(
-                                      color: Colors.greenAccent.withOpacity(
-                                        0.6,
-                                      ),
+                                      color: Colors.greenAccent.withOpacity(0.6),
                                       blurRadius: 8,
                                       spreadRadius: 2,
                                     ),
@@ -110,8 +101,6 @@ class ScanModal extends StatelessWidget {
                           ],
                         ),
                       ),
-
-                      // Spacing tambahan agar ilustrasi tidak terlalu dekat dengan cekungan
                       const SizedBox(height: 20),
                     ],
                   ),
@@ -126,12 +115,8 @@ class ScanModal extends StatelessWidget {
                 width: 120,
                 height: 48,
                 child: ElevatedButton(
-                  // UPDATE BAGIAN INI:
                   onPressed: () {
-                    // 1. Tutup Modal
                     Navigator.pop(context);
-
-                    // 2. Buka Screen Kamera
                     Navigator.push(
                       context,
                       MaterialPageRoute(
@@ -161,75 +146,52 @@ class ScanModal extends StatelessWidget {
   }
 }
 
-/// ===== CLIPPER BARU: ROUNDED RECTANGLE NOTCH =====
 class BottomRoundedRectClipper extends CustomClipper<Path> {
   @override
   Path getClip(Size size) {
-    const double radius = 24; // Radius sudut luar kartu
-
-    // Konfigurasi Cekungan (Notch)
-    const double notchWidth =
-        140; // Lebar cekungan (lebih lebar dari tombol 120)
-    const double notchDepth =
-        55; // Kedalaman cekungan (sedikit lebih tinggi dari tombol 48)
-    const double notchRadius = 16; // Kelengkungan sudut-sudut dalam cekungan
+    const double radius = 24;
+    const double notchWidth = 140;
+    const double notchDepth = 55;
+    const double notchRadius = 16;
 
     final path = Path();
     final double w = size.width;
     final double h = size.height;
 
-    // --- MULAI GAMBAR KARTU ---
-
-    // 1. Garis Kiri Bawah (Start point: kiri cekungan)
     path.moveTo(0, h - radius);
-
-    // 2. Sudut Kiri Atas
     path.lineTo(0, radius);
     path.quadraticBezierTo(0, 0, radius, 0);
 
-    // 3. Sudut Kanan Atas
     path.lineTo(w - radius, 0);
     path.quadraticBezierTo(w, 0, w, radius);
 
-    // 4. Garis Sisi Kanan ke Bawah
     path.lineTo(w, h - radius);
     path.quadraticBezierTo(w, h, w - radius, h);
 
-    // --- MULAI MEMBUAT CEKUNGAN (Dari Kanan ke Kiri) ---
-
-    // Titik referensi sisi kanan cekungan
     final double rightNotchX = (w / 2) + (notchWidth / 2);
-    // Titik referensi sisi kiri cekungan
     final double leftNotchX = (w / 2) - (notchWidth / 2);
-    // Titik Y teratas di dalam cekungan
     final double topNotchY = h - notchDepth;
 
-    // 5. Garis bawah kanan menuju mulut cekungan
     path.lineTo(rightNotchX + notchRadius, h);
 
-    // 6. Sudut membulat MASUK ke cekungan (Kanan Bawah)
     path.quadraticBezierTo(
       rightNotchX,
-      h, // Control Point (Sudut siku)
+      h,
       rightNotchX,
-      h - notchRadius, // End Point (Mulai naik)
+      h - notchRadius,
     );
 
-    // 7. Garis vertikal NAIK (Dinding kanan cekungan)
     path.lineTo(rightNotchX, topNotchY + notchRadius);
 
-    // 8. Sudut membulat DALAM (Kanan Atas)
     path.quadraticBezierTo(
       rightNotchX,
-      topNotchY, // Control Point
+      topNotchY,
       rightNotchX - notchRadius,
-      topNotchY, // End Point
+      topNotchY,
     );
 
-    // 9. Garis horizontal DATAR (Atap cekungan)
     path.lineTo(leftNotchX + notchRadius, topNotchY);
 
-    // 10. Sudut membulat DALAM (Kiri Atas)
     path.quadraticBezierTo(
       leftNotchX,
       topNotchY,
@@ -237,13 +199,10 @@ class BottomRoundedRectClipper extends CustomClipper<Path> {
       topNotchY + notchRadius,
     );
 
-    // 11. Garis vertikal TURUN (Dinding kiri cekungan)
     path.lineTo(leftNotchX, h - notchRadius);
 
-    // 12. Sudut membulat KELUAR dari cekungan (Kiri Bawah)
     path.quadraticBezierTo(leftNotchX, h, leftNotchX - notchRadius, h);
 
-    // 13. Kembali ke garis bawah kiri & Sudut Kiri Bawah Utama
     path.lineTo(radius, h);
     path.quadraticBezierTo(0, h, 0, h - radius);
 

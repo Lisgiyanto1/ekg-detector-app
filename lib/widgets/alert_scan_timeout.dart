@@ -1,27 +1,66 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:lucide_icons_flutter/lucide_icons.dart';
 
-
-class AlertScanError extends StatelessWidget {
+class AlertScanTimeout extends StatefulWidget {
   final String message;
-  final VoidCallback onRetry;
 
-  const AlertScanError({
-    super.key,
-    required this.message,
-    required this.onRetry,
-  });
+  const AlertScanTimeout({super.key, required this.message});
 
-  /// Helper static method agar pemanggilannya singkat di ScanScreen
   static void show(BuildContext context, String message) {
-    showDialog(
+    showGeneralDialog(
       context: context,
-      barrierDismissible: false, // User harus klik tombol untuk tutup
-      builder: (context) => AlertScanError(
-        message: message,
-        onRetry: () => Navigator.pop(context),
-      ),
+      barrierDismissible: false,
+      barrierLabel: "AlertScanTimeout",
+      // Menggunakan transitionDuration tunggal yang kompatibel untuk masuk & keluar
+      transitionDuration: const Duration(milliseconds: 450),
+      pageBuilder: (context, animation, secondaryAnimation) {
+        return AlertScanTimeout(message: message);
+      },
+      transitionBuilder: (context, animation, secondaryAnimation, child) {
+        // Pengecekan status ini tetap berfungsi secara dinamis saat dialog ditutup
+        final curve = animation.status == AnimationStatus.reverse
+            ? Curves.bounceIn
+            : Curves.bounceOut;
+
+        return ScaleTransition(
+          scale: CurvedAnimation(parent: animation, curve: curve),
+          child: child,
+        );
+      },
     );
+  }
+
+  @override
+  State<AlertScanTimeout> createState() => _AlertScanTimeoutState();
+}
+
+class _AlertScanTimeoutState extends State<AlertScanTimeout> {
+  Timer? _timer;
+  int _secondsRemaining = 3;
+
+  @override
+  void initState() {
+    super.initState();
+    _timer = Timer.periodic(const Duration(seconds: 1), (timer) {
+      if (mounted) {
+        if (_secondsRemaining > 1) {
+          setState(() {
+            _secondsRemaining--;
+          });
+        } else {
+          _timer?.cancel();
+          Navigator.of(context).pop();
+        }
+      }
+    });
+  }
+
+  @override
+  void dispose() {
+    _timer?.cancel();
+    super.dispose();
   }
 
   @override
@@ -47,7 +86,6 @@ class AlertScanError extends StatelessWidget {
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: <Widget>[
-            // Icon Error
             Container(
               padding: const EdgeInsets.all(16),
               decoration: BoxDecoration(
@@ -61,8 +99,6 @@ class AlertScanError extends StatelessWidget {
               ),
             ),
             const SizedBox(height: 20),
-
-            // Title
             const Text(
               "Gagal Memindai",
               style: TextStyle(
@@ -72,30 +108,15 @@ class AlertScanError extends StatelessWidget {
               ),
             ),
             const SizedBox(height: 10),
-
-            // Message (Pesan dari Repository)
             Text(
-              message,
+              widget.message,
               textAlign: TextAlign.center,
               style: const TextStyle(fontSize: 14, color: Colors.black54),
             ),
-            const SizedBox(height: 24),
-
-            // Button
-            SizedBox(
-              width: double.infinity,
-              child: ElevatedButton(
-                onPressed: onRetry,
-                style: ElevatedButton.styleFrom(
-                  backgroundColor: Colors.red,
-                  foregroundColor: Colors.white,
-                  padding: const EdgeInsets.symmetric(vertical: 12),
-                  shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(12),
-                  ),
-                ),
-                child: const Text("Coba Lagi"),
-              ),
+            const SizedBox(height: 16),
+            Text(
+              "Menutup otomatis dalam $_secondsRemaining detik...",
+              style: const TextStyle(fontSize: 12, color: Colors.black38),
             ),
           ],
         ),

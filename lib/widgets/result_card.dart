@@ -1,167 +1,199 @@
-import 'dart:ui';
-
 import 'package:flutter/material.dart';
-import 'package:lucide_icons/lucide_icons.dart';
+import 'package:lucide_icons_flutter/lucide_icons.dart';
 
 class ResultCard extends StatelessWidget {
   final String title;
   final String label;
   final String textGreet;
+  final String urgency;
+
   const ResultCard({
     super.key,
     required this.textGreet,
     required this.title,
     required this.label,
+    required this.urgency,
   });
 
   @override
   Widget build(BuildContext context) {
+    // ==========================================
+    // SKEMA WARNA BERDASARKAN TINGKAT URGENSI
+    // ==========================================
+    final String lowerUrgency = urgency.toLowerCase();
+
+    // Default: Rendah / Normal (Emerald / Teal)
+    List<Color> cardGradient = const [
+      Color(0xFF059669), // Emerald 600
+      Color(0xFF047857), // Emerald 700
+      Color(0xFF065F46), // Emerald 800
+    ];
+    Color accentColor = const Color(0xFF10B981); // Emerald 500
+    Color shadowColor = const Color(0xFF059669);
+
+    if (lowerUrgency.contains("sedang")) {
+      // Sedang (Amber / Yellow-Orange)
+      cardGradient = const [
+        Color(0xFFD97706), // Amber 600
+        Color(0xFFB45309), // Amber 700
+        Color(0xFF78350F), // Amber 900
+      ];
+      accentColor = const Color(0xFFF59E0B); // Amber 500
+      shadowColor = const Color(0xFFD97706);
+    } else if (lowerUrgency.contains("tinggi") ||
+        lowerUrgency.contains("darurat") ||
+        lowerUrgency.contains("bahaya")) {
+      // Tinggi / Bahaya (Rose / Red)
+      cardGradient = const [
+        Color(0xFFE11D48), // Rose 600
+        Color(0xFFBE123C), // Rose 700
+        Color(0xFF881337), // Rose 900
+      ];
+      accentColor = const Color(0xFFF43F5E); // Rose 500
+      shadowColor = const Color(0xFFE11D48);
+    }
+
     return SizedBox(
+      width: double.infinity,
       child: Stack(
         alignment: Alignment.bottomCenter,
         clipBehavior: Clip.none,
         children: [
+          // =========================================================
+          // 1. LINGKARAN & GLOWING EFFECT CONNECTOR
+          // =========================================================
           Positioned(
-            child: SizedBox(
-              width: 20,
-              height: 50,
-              child: Container(
-                decoration: BoxDecoration(
-                  color: const Color.fromARGB(150, 158, 158, 158),
-                ),
+            bottom: -12,
+            child: Container(
+              width: 32,
+              height: 32,
+              decoration: BoxDecoration(
+                shape: BoxShape.circle,
+                color: accentColor,
+                boxShadow: [
+                  BoxShadow(
+                    color: shadowColor.withOpacity(0.6),
+                    spreadRadius: 4,
+                    blurRadius: 12,
+                    offset: const Offset(0, 2),
+                  ),
+                  BoxShadow(
+                    color: Colors.white.withOpacity(0.8),
+                    spreadRadius: 1,
+                    blurRadius: 2,
+                  ),
+                ],
+              ),
+              child: const Icon(
+                Icons.keyboard_arrow_down_rounded,
+                color: Colors.white,
+                size: 20,
               ),
             ),
           ),
-          Positioned(
-            bottom: -10,
-            child: SizedBox(
-              width: 40,
-              height: 40,
-              child: Container(
-                decoration: BoxDecoration(
-                  boxShadow: [
-                    BoxShadow(
-                      color: const Color.fromARGB(148, 0, 120, 150),
-                      spreadRadius: 10,
-                      blurRadius: 40,
-                      offset: Offset(0, 0),
-                    ),
-                  ],
-                  borderRadius: BorderRadius.circular(30),
-                  color: const Color.fromARGB(255, 3, 97, 134),
-                ),
-              ),
-            ),
-          ),
+
+          // =========================================================
+          // 2. KARTU HASIL / REKOMENDASI
+          // =========================================================
           Padding(
-            padding: const EdgeInsets.all(20.0),
-            child: Positioned(
+            padding: const EdgeInsets.symmetric(horizontal: 20.0),
+            child: Container(
+              decoration: BoxDecoration(
+                boxShadow: [
+                  BoxShadow(
+                    color: shadowColor.withOpacity(0.35),
+                    blurRadius: 20,
+                    spreadRadius: 0,
+                    offset: const Offset(0, 10),
+                  ),
+                  BoxShadow(
+                    color: shadowColor.withOpacity(0.2),
+                    blurRadius: 10,
+                    spreadRadius: -2,
+                    offset: const Offset(0, 4),
+                  ),
+                ],
+              ),
               child: ClipPath(
                 clipper: BottomRoundedRectClipper(),
                 child: Container(
                   width: double.infinity,
-                  padding: const EdgeInsets.only(
-                    top: 20,
-                    left: 20,
-                    right: 20,
-                    bottom: 20,
-                  ),
-                  decoration: const BoxDecoration(
+                  padding: const EdgeInsets.all(20),
+                  decoration: BoxDecoration(
                     gradient: LinearGradient(
-                      begin: Alignment.topCenter,
-                      end: Alignment.bottomCenter,
-                      colors: [
-                        Color.fromARGB(0, 158, 158, 158),
-                        Color.fromARGB(255, 136, 136, 136),
-                      ],
+                      begin: Alignment.topLeft,
+                      end: Alignment.bottomRight,
+                      colors: cardGradient,
                     ),
                   ),
                   child: Column(
+                    mainAxisSize: MainAxisSize.min,
                     children: [
+                      // Header Card
                       Row(
-                        spacing: 10,
-                        children: [
+                        children: const [
                           Icon(
                             LucideIcons.brainCircuit,
-                            fontWeight: FontWeight.w600,
-                            color: const Color.fromARGB(255, 61, 61, 61),
+                            size: 22,
+                            color: Colors.white,
                           ),
-
+                          SizedBox(width: 10),
                           Text(
                             "Rekomendasi",
                             style: TextStyle(
                               fontFamily: "Montserrat",
-                              fontSize: 20,
+                              fontSize: 18,
                               fontWeight: FontWeight.bold,
-                              color: const Color.fromARGB(255, 73, 73, 73),
+                              color: Colors.white,
+                              letterSpacing: 0.5,
                             ),
                           ),
                         ],
                       ),
-                      SizedBox(height: 20.0),
-                      ClipRRect(
-                        borderRadius: BorderRadius.circular(20),
+                      const SizedBox(height: 16.0),
 
-                        child: BackdropFilter(
-                          filter: ImageFilter.blur(sigmaX: 14, sigmaY: 14),
-
-                          child: AnimatedContainer(
-                            duration: const Duration(milliseconds: 200),
-                            decoration: BoxDecoration(
-                              color: Colors.white.withValues(alpha: 0.22),
-                              borderRadius: BorderRadius.circular(20),
-                              border: Border.all(
-                                color: Colors.white.withValues(alpha: 0.25),
+                      // Inner Card Content
+                      Container(
+                        width: double.infinity,
+                        padding: const EdgeInsets.all(20.0),
+                        decoration: BoxDecoration(
+                          color: Colors.white,
+                          borderRadius: BorderRadius.circular(18),
+                          boxShadow: [
+                            BoxShadow(
+                              color: Colors.black.withOpacity(0.06),
+                              blurRadius: 8,
+                              offset: const Offset(0, 3),
+                            ),
+                          ],
+                        ),
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text(
+                              label,
+                              style: const TextStyle(
+                                fontFamily: "Montserrat",
+                                fontSize: 24,
+                                fontWeight: FontWeight.bold,
+                                color: Color(0xFF1E293B),
                               ),
                             ),
-                            child: Padding(
-                              padding: const EdgeInsets.all(20.0),
-                              child: Column(
-                                spacing: 10,
-                                children: [
-                                  Row(
-                                    children: [
-                                      Text(
-                                        label,
-                                        textAlign: TextAlign.left,
-                                        style: TextStyle(
-                                          fontFamily: "Montserrat",
-                                          fontSize: 28,
-                                          fontWeight: FontWeight.bold,
-                                          color: const Color.fromARGB(
-                                            255,
-                                            65,
-                                            65,
-                                            65,
-                                          ),
-                                        ),
-                                      ),
-                                    ],
-                                  ),
-
-                                  Center(
-                                    child: Text(
-                                      '"$textGreet"',
-                                      style: TextStyle(
-                                        fontFamily: "Montserrat",
-                                        fontWeight: FontWeight.bold,
-                                        fontSize: 20,
-                                        color: const Color.fromARGB(
-                                          255,
-                                          82,
-                                          82,
-                                          82,
-                                        ),
-                                      ),
-                                      textAlign: TextAlign.start,
-                                    ),
-                                  ),
-                                ],
+                            const SizedBox(height: 8),
+                            Text(
+                              '"$textGreet"',
+                              style: const TextStyle(
+                                fontFamily: "Montserrat",
+                                fontWeight: FontWeight.w600,
+                                fontSize: 14,
+                                color: Color(0xFF475569),
+                                height: 1.4,
                               ),
                             ),
-                          ),
+                          ],
                         ),
                       ),
+                      const SizedBox(height: 10),
                     ],
                   ),
                 ),
@@ -174,74 +206,50 @@ class ResultCard extends StatelessWidget {
   }
 }
 
+// Custom Clipper dengan Notch Bawah
 class BottomRoundedRectClipper extends CustomClipper<Path> {
   @override
   Path getClip(Size size) {
-    const double radius = 20; // Radius sudut luar kartu
-
-    // Konfigurasi Cekungan (Notch)
-    const double notchWidth =
-        100; // Lebar cekungan (lebih lebar dari tombol 120)
-    const double notchDepth =
-        20; // Kedalaman cekungan (sedikit lebih tinggi dari tombol 48)
-    const double notchRadius = 16; // Kelengkungan sudut-sudut dalam cekungan
+    const double radius = 20;
+    const double notchWidth = 70;
+    const double notchDepth = 16;
+    const double notchRadius = 12;
 
     final path = Path();
     final double w = size.width;
     final double h = size.height;
 
-    // --- MULAI GAMBAR KARTU ---
-
-    // 1. Garis Kiri Bawah (Start point: kiri cekungan)
     path.moveTo(0, h - radius);
-
-    // 2. Sudut Kiri Atas
     path.lineTo(0, radius);
     path.quadraticBezierTo(0, 0, radius, 0);
 
-    // 3. Sudut Kanan Atas
     path.lineTo(w - radius, 0);
     path.quadraticBezierTo(w, 0, w, radius);
 
-    // 4. Garis Sisi Kanan ke Bawah
     path.lineTo(w, h - radius);
     path.quadraticBezierTo(w, h, w - radius, h);
 
-    // --- MULAI MEMBUAT CEKUNGAN (Dari Kanan ke Kiri) ---
-
-    // Titik referensi sisi kanan cekungan
     final double rightNotchX = (w / 2) + (notchWidth / 2);
-    // Titik referensi sisi kiri cekungan
     final double leftNotchX = (w / 2) - (notchWidth / 2);
-    // Titik Y teratas di dalam cekungan
     final double topNotchY = h - notchDepth;
 
-    // 5. Garis bawah kanan menuju mulut cekungan
     path.lineTo(rightNotchX + notchRadius, h);
-
-    // 6. Sudut membulat MASUK ke cekungan (Kanan Bawah)
     path.quadraticBezierTo(
       rightNotchX,
-      h, // Control Point (Sudut siku)
+      h,
       rightNotchX,
-      h - notchRadius, // End Point (Mulai naik)
+      h - notchRadius,
     );
 
-    // 7. Garis vertikal NAIK (Dinding kanan cekungan)
     path.lineTo(rightNotchX, topNotchY + notchRadius);
-
-    // 8. Sudut membulat DALAM (Kanan Atas)
     path.quadraticBezierTo(
       rightNotchX,
-      topNotchY, // Control Point
+      topNotchY,
       rightNotchX - notchRadius,
-      topNotchY, // End Point
+      topNotchY,
     );
 
-    // 9. Garis horizontal DATAR (Atap cekungan)
     path.lineTo(leftNotchX + notchRadius, topNotchY);
-
-    // 10. Sudut membulat DALAM (Kiri Atas)
     path.quadraticBezierTo(
       leftNotchX,
       topNotchY,
@@ -249,13 +257,9 @@ class BottomRoundedRectClipper extends CustomClipper<Path> {
       topNotchY + notchRadius,
     );
 
-    // 11. Garis vertikal TURUN (Dinding kiri cekungan)
     path.lineTo(leftNotchX, h - notchRadius);
-
-    // 12. Sudut membulat KELUAR dari cekungan (Kiri Bawah)
     path.quadraticBezierTo(leftNotchX, h, leftNotchX - notchRadius, h);
 
-    // 13. Kembali ke garis bawah kiri & Sudut Kiri Bawah Utama
     path.lineTo(radius, h);
     path.quadraticBezierTo(0, h, 0, h - radius);
 
@@ -265,48 +269,4 @@ class BottomRoundedRectClipper extends CustomClipper<Path> {
 
   @override
   bool shouldReclip(CustomClipper<Path> oldClipper) => false;
-}
-
-class _CornerPainter extends CustomPainter {
-  @override
-  void paint(Canvas canvas, Size size) {
-    final paint = Paint()
-      ..color = Colors.black54
-      ..strokeWidth = 2
-      ..style = PaintingStyle.stroke;
-
-    const double cornerSize = 10;
-
-    canvas.drawPath(
-      Path()
-        ..moveTo(0, cornerSize)
-        ..lineTo(0, 0)
-        ..lineTo(cornerSize, 0),
-      paint,
-    );
-    canvas.drawPath(
-      Path()
-        ..moveTo(size.width - cornerSize, 0)
-        ..lineTo(size.width, 0)
-        ..lineTo(size.width, cornerSize),
-      paint,
-    );
-    canvas.drawPath(
-      Path()
-        ..moveTo(0, size.height - cornerSize)
-        ..lineTo(0, size.height)
-        ..lineTo(cornerSize, size.height),
-      paint,
-    );
-    canvas.drawPath(
-      Path()
-        ..moveTo(size.width - cornerSize, size.height)
-        ..lineTo(size.width, size.height)
-        ..lineTo(size.width, size.height - cornerSize),
-      paint,
-    );
-  }
-
-  @override
-  bool shouldRepaint(covariant CustomPainter oldDelegate) => false;
 }

@@ -1,14 +1,12 @@
 import 'package:camera/camera.dart';
 import 'package:flutter/material.dart';
-import 'package:flutter/services.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:flutter_ekg_detector/features/scan/scan_bloc.dart';
 import 'package:flutter_ekg_detector/features/scan/scan_event.dart';
 import 'package:flutter_ekg_detector/features/scan/scan_state.dart';
 import 'package:flutter_ekg_detector/screens/screen_result.dart';
-import 'package:flutter_ekg_detector/widgets/alert_scan_error.dart';
-import 'package:lottie/lottie.dart';
-import 'package:lucide_icons/lucide_icons.dart';
+import 'package:flutter_ekg_detector/widgets/alert_scan_timeout.dart';
+import 'package:lucide_icons_flutter/lucide_icons.dart';
 
 class ScanScreen extends StatefulWidget {
   const ScanScreen({super.key});
@@ -17,31 +15,59 @@ class ScanScreen extends StatefulWidget {
   State<ScanScreen> createState() => _ScanScreenState();
 }
 
-class _ScanScreenState extends State<ScanScreen> with WidgetsBindingObserver {
+class _ScanScreenState extends State<ScanScreen>
+    with WidgetsBindingObserver, SingleTickerProviderStateMixin {
   CameraController? _controller;
   Future<void>? _initializeControllerFuture;
+  bool _isAnalyzing = false;
 
-  bool _isDelayingAnimation = false;
+  // Variabel kontrol animasi scanner line
+  late AnimationController _animationController;
+
+  // Variabel untuk kustomisasi ukuran frame kotak pemindai (bisa diatur user)
+  double _scanWidthFactor = 0.8; // Default 80% dari lebar layar
+  double _scanHeightFactor = 0.4; // Default 40% dari tinggi layar
+  bool _showFrameSettings = false; // Toggle visibilitas slider pengaturan frame
 
   @override
   void initState() {
     super.initState();
     WidgetsBinding.instance.addObserver(this);
     _initCamera();
+
+    // Inisialisasi controller animasi tanpa langsung menjalankannya (.repeat dihapus dari sini)
+    _animationController = AnimationController(
+      vsync: this,
+      duration: const Duration(milliseconds: 2000),
+    );
+  }
+
+  Future<void> _initCamera() async {
+    final cameras = await availableCameras();
+    if (cameras.isEmpty) return;
+    _controller = CameraController(
+      cameras.first,
+      ResolutionPreset.high,
+      enableAudio: false,
+    );
+    _initializeControllerFuture = _controller!.initialize();
+    if (mounted) setState(() {});
   }
 
   @override
   void dispose() {
     WidgetsBinding.instance.removeObserver(this);
     _controller?.dispose();
+    _animationController.dispose();
     super.dispose();
   }
 
   @override
   void didChangeAppLifecycleState(AppLifecycleState state) {
     final CameraController? cameraController = _controller;
-    if (cameraController == null || !cameraController.value.isInitialized)
+    if (cameraController == null || !cameraController.value.isInitialized) {
       return;
+    }
     if (state == AppLifecycleState.inactive) {
       cameraController.dispose();
     } else if (state == AppLifecycleState.resumed) {
@@ -49,233 +75,265 @@ class _ScanScreenState extends State<ScanScreen> with WidgetsBindingObserver {
     }
   }
 
-  Future<void> _initCamera() async {
-    try {
-      final cameras = await availableCameras();
-      if (cameras.isEmpty) return;
-      _controller = CameraController(
-        cameras.first,
-        ResolutionPreset.high,
-        enableAudio: false,
-        imageFormatGroup: ImageFormatGroup.jpeg,
-      );
-      _initializeControllerFuture = _controller!.initialize().then((_) {
-        if (!mounted) return;
-        setState(() {});
-        _controller!.lockCaptureOrientation(DeviceOrientation.portraitUp);
-      });
-    } catch (e) {
-      debugPrint("Error initializing camera: $e");
+  Future<void> _captureAndAnalyze() async {
+    if (_isAnalyzing ||
+        _controller == null ||
+        !_controller!.value.isInitialized) {
+      return;
     }
-  }
 
-  /// Fungsi Scanner yang dimodifikasi untuk BLoC
-  Future<void> _handleScan(BuildContext context) async {
-    if (_controller == null || !_controller!.value.isInitialized) return;
+    setState(() {
+      _isAnalyzing = true;
+      _showFrameSettings =
+          false; // Tutup pengaturan frame saat proses memindai dimulai
+    });
 
     try {
-      final XFile image = await _controller!.takePicture();
-
-      // KIRIM EVENT KE BLOC
-      context.read<ScanBloc>().add(AnalyzeImage(image.path));
+      final image = await _controller!.takePicture();
+      if (mounted) {
+        context.read<ScanBloc>().add(AnalyzeImage(image.path));
+      }
     } catch (e) {
-      debugPrint("Error capture: $e");
+      if (mounted) {
+        setState(() {
+          _isAnalyzing = false;
+        });
+        AlertScanTimeout.show(context, "Gagal mengambil gambar: $e");
+      }
     }
   }
 
   @override
   Widget build(BuildContext context) {
-    final size = MediaQuery.of(context).size;
-    final double scanWidth = size.width * 0.75;
-    final double scanHeight = size.width * 1.05;
-    final double scanLeft = (size.width - scanWidth) / 2;
-    final double scanTop = (size.height - scanHeight) / 2;
+    return PopScope(
+      canPop: true,
+      onPopInvokedWithResult: (didPop, result) {
+        if (didPop) {
+          context.read<ScanBloc>().add(LoadStatistics());
+        }
+      },
+      child: Scaffold(
+        backgroundColor: Colors.black,
+        body: BlocListener<ScanBloc, ScanState>(
+          listener: (context, state) {
+            if (state is ScanLoading) {
+              // Jalankan animasi laser HANYA saat state loading memindai aktif
+              _animationController.repeat(reverse: true);
+              setState(() {
+                _isAnalyzing = true;
+              });
+            } else {
+              // Hentikan dan reset posisi laser jika proses selesai/gagal
+              _animationController.stop();
+              _animationController.reset();
+              setState(() {
+                _isAnalyzing = false;
+              });
+            }
 
-    return Scaffold(
-      backgroundColor: Colors.black,
-      body: BlocConsumer<ScanBloc, ScanState>(
-        listener: (context, state) async {
-          // Ubah jadi async
-          if (state is ScanSuccess) {
-            // 1. Saat data sukses didapat, paksa animasi tetap tampil
-            setState(() {
-              _isDelayingAnimation = true;
-            });
-
-            // 2. Tahan selama durasi animasi (misal 3 detik)
-            await Future.delayed(const Duration(seconds: 3));
-
-            if (!mounted) return;
-
-            // 3. Matikan animasi paksa sebelum navigasi
-            setState(() {
-              _isDelayingAnimation = false;
-            });
-
-            // 4. Navigasi ke ResultScreen
-            // Gunakan 'await' agar kode di bawahnya jalan setelah user kembali (back)
-            await Navigator.push(
-              context,
-              MaterialPageRoute(
-                builder: (context) => ResultScreen(
-                  data: state.result,
-                  imagePath: state.imagePath,
+            if (state is ScanSuccess) {
+              Navigator.pushReplacement(
+                context,
+                MaterialPageRoute(
+                  builder: (_) => ResultScreen(
+                    data: state.result,
+                    imagePath: state.imagePath,
+                  ),
                 ),
-              ),
-            );
-
-            // Opsional: Reset Bloc agar bersih saat kembali
-            // context.read<ScanBloc>().add(InitModel());
-          } else if (state is ScanError) {
-            // Pastikan animasi mati jika error
-            setState(() {
-              _isDelayingAnimation = false;
-            });
-            AlertScanError.show(context, state.message);
-          }
-        },
-        builder: (context, state) {
-          // LOGIKA PENTING:
-          // Tampilkan animasi jika Bloc sedang Loading ATAU kita sedang menahan (Delaying)
-          bool showLottie = state is ScanLoading || _isDelayingAnimation;
-
-          return FutureBuilder<void>(
+              );
+            } else if (state is ScanError) {
+              AlertScanTimeout.show(context, state.message);
+            }
+          },
+          child: FutureBuilder<void>(
             future: _initializeControllerFuture,
             builder: (context, snapshot) {
               if (snapshot.connectionState == ConnectionState.done &&
-                  _controller != null &&
-                  _controller!.value.isInitialized) {
+                  _controller != null) {
                 return Stack(
                   fit: StackFit.expand,
                   children: [
-                    /// LAYER 1: KAMERA
                     CameraPreview(_controller!),
 
-                    /// LAYER 2: ANIMASI LOTTIE
-                    // Gunakan variabel showLottie yang baru
-                    if (showLottie)
-                      Positioned(
-                        left: scanLeft,
-                        top: scanTop,
-                        width: scanWidth,
-                        height: scanHeight,
-                        child: Lottie.asset(
-                          'assets/lottie/scanner.json',
-                          fit: BoxFit.fill,
-                          repeat: true, // Biarkan looping selama delay
-                        ),
-                      ),
-
-                    /// LAYER 3: OVERLAY POLYGON
-                    CustomPaint(
-                      painter: ScannerOverlayPainter(
-                        scanWidth: scanWidth,
-                        scanHeight: scanHeight,
-                      ),
-                      child: Container(),
+                    // Menggunakan AnimatedBuilder untuk me-rebuild gambar overlay secara smooth
+                    AnimatedBuilder(
+                      animation: _animationController,
+                      builder: (context, child) {
+                        return CustomPaint(
+                          painter: ScannerOverlayPainter(
+                            animationValue: _animationController.value,
+                            scanWidthFactor: _scanWidthFactor,
+                            scanHeightFactor: _scanHeightFactor,
+                            showLaserLine:
+                                _isAnalyzing, // Garis laser hanya tampil saat memindai
+                          ),
+                        );
+                      },
                     ),
 
-                    /// LAYER 4: HEADER
-                    Positioned(
-                      top: MediaQuery.of(context).padding.top + 10,
-                      left: 0,
-                      right: 0,
-                      child: Row(
+                    SafeArea(
+                      child: Column(
+                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
                         children: [
-                          IconButton(
-                            onPressed: () => Navigator.pop(context),
-                            icon: const Icon(
-                              Icons.arrow_back,
-                              color: Colors.white,
-                            ),
-                          ),
-                          const Spacer(),
-                          const Text(
-                            "Scan Grafik Elektrokardiogram",
-                            style: TextStyle(
-                              color: Colors.white,
-                              fontSize: 18,
-                              fontWeight: FontWeight.w600,
-                            ),
-                          ),
-                          const Spacer(),
-                          const SizedBox(width: 48),
-                        ],
-                      ),
-                    ),
-
-                    /// LAYER 5: HINT TEXT
-                    // Sembunyikan hint text jika animasi sedang jalan
-                    if (!showLottie)
-                      Positioned(
-                        bottom: 160,
-                        left: 0,
-                        right: 0,
-                        child: Center(
-                          child: Container(
+                          // --- TOP BAR BUTTONS ---
+                          Padding(
                             padding: const EdgeInsets.symmetric(
-                              horizontal: 12,
-                              vertical: 6,
+                              horizontal: 16,
+                              vertical: 8,
                             ),
-                            decoration: BoxDecoration(
-                              color: Colors.black.withOpacity(0.5),
-                              borderRadius: BorderRadius.circular(8),
+                            child: Row(
+                              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                              children: [
+                                IconButton(
+                                  icon: const Icon(
+                                    Icons.arrow_back,
+                                    color: Colors.white,
+                                  ),
+                                  onPressed: () {
+                                    context.read<ScanBloc>().add(
+                                      LoadStatistics(),
+                                    );
+                                    Navigator.pop(context);
+                                  },
+                                ),
+                                // Tombol Pengaturan Kustomisasi Frame Kotak (Sembunyikan saat memindai)
+                                if (!_isAnalyzing)
+                                  IconButton(
+                                    icon: Icon(
+                                      _showFrameSettings
+                                          ? Icons.close
+                                          : Icons.tune,
+                                      color: Colors.white,
+                                    ),
+                                    onPressed: () {
+                                      setState(() {
+                                        _showFrameSettings =
+                                            !_showFrameSettings;
+                                      });
+                                    },
+                                  ),
+                              ],
                             ),
-                            child: const Text(
-                              "Posisikan dengan presisi pada seluruh sisi objek",
-                              textAlign: TextAlign.center,
-                              style: TextStyle(
-                                color: Colors.white,
-                                fontSize: 14,
+                          ),
+
+                          // --- SLIDER PANEL UNTUK ADJUST CUSTOM BOX FRAME ---
+                          if (_showFrameSettings && !_isAnalyzing)
+                            Container(
+                              margin: const EdgeInsets.symmetric(
+                                horizontal: 20,
+                              ),
+                              padding: const EdgeInsets.all(16),
+                              decoration: BoxDecoration(
+                                color: Colors.black.withOpacity(0.75),
+                                borderRadius: BorderRadius.circular(16),
+                                border: Border.all(color: Colors.white24),
+                              ),
+                              child: Column(
+                                mainAxisSize: MainAxisSize.min,
+                                children: [
+                                  const Text(
+                                    "Sesuaikan Ukuran Kotak Deteksi",
+                                    style: TextStyle(
+                                      color: Colors.white,
+                                      fontWeight: FontWeight.bold,
+                                      fontSize: 13,
+                                    ),
+                                  ),
+                                  const SizedBox(height: 8),
+                                  Row(
+                                    children: [
+                                      const Icon(
+                                        Icons.swap_horiz,
+                                        color: Colors.white70,
+                                        size: 20,
+                                      ),
+                                      const SizedBox(width: 8),
+                                      const Text(
+                                        "Lebar: ",
+                                        style: TextStyle(
+                                          color: Colors.white70,
+                                          fontSize: 12,
+                                        ),
+                                      ),
+                                      Expanded(
+                                        child: Slider(
+                                          value: _scanWidthFactor,
+                                          min: 0.4,
+                                          max: 0.95,
+                                          activeColor: Colors.blueAccent,
+                                          onChanged: (val) {
+                                            setState(
+                                              () => _scanWidthFactor = val,
+                                            );
+                                          },
+                                        ),
+                                      ),
+                                    ],
+                                  ),
+                                  Row(
+                                    children: [
+                                      const Icon(
+                                        Icons.swap_vert,
+                                        color: Colors.white70,
+                                        size: 20,
+                                      ),
+                                      const SizedBox(width: 8),
+                                      const Text(
+                                        "Tinggi:",
+                                        style: TextStyle(
+                                          color: Colors.white70,
+                                          fontSize: 12,
+                                        ),
+                                      ),
+                                      Expanded(
+                                        child: Slider(
+                                          value: _scanHeightFactor,
+                                          min: 0.2,
+                                          max: 0.65,
+                                          activeColor: Colors.blueAccent,
+                                          onChanged: (val) {
+                                            setState(
+                                              () => _scanHeightFactor = val,
+                                            );
+                                          },
+                                        ),
+                                      ),
+                                    ],
+                                  ),
+                                ],
+                              ),
+                            ),
+
+                          // --- BOTTOM SHUTTER BUTTON ---
+                          Padding(
+                            padding: const EdgeInsets.only(bottom: 40),
+                            child: InkWell(
+                              onTap: _captureAndAnalyze,
+                              child: Container(
+                                height: 72,
+                                width: 72,
+                                decoration: BoxDecoration(
+                                  shape: BoxShape.circle,
+                                  border: Border.all(
+                                    color: Colors.white,
+                                    width: 4,
+                                  ),
+                                ),
+                                child: Center(
+                                  child: _isAnalyzing
+                                      ? const CircularProgressIndicator(
+                                          color: Colors.white,
+                                        )
+                                      : const Icon(
+                                          LucideIcons.scan,
+                                          color: Colors.white,
+                                          size: 32,
+                                        ),
+                                ),
                               ),
                             ),
                           ),
-                        ),
-                      ),
-
-                    /// LAYER 6: TOMBOL SCAN
-                    Positioned(
-                      bottom: 50,
-                      left: 0,
-                      right: 0,
-                      child: Center(
-                        child: GestureDetector(
-                          // Disable tombol jika sedang animasi
-                          onTap: showLottie ? null : () => _handleScan(context),
-                          child: Container(
-                            width: 80,
-                            height: 80,
-                            decoration: BoxDecoration(
-                              color: Colors.white.withOpacity(0.2),
-                              shape: BoxShape.circle,
-                              border: Border.all(color: Colors.white, width: 4),
-                            ),
-                            child: Center(
-                              child: showLottie
-                                  ? const SizedBox(
-                                      width: 30,
-                                      height: 30,
-                                      child: CircularProgressIndicator(
-                                        color: Colors.white,
-                                        strokeWidth: 3,
-                                      ),
-                                    )
-                                  : Container(
-                                      width: 60,
-                                      height: 60,
-                                      decoration: const BoxDecoration(
-                                        color: Colors.white,
-                                        shape: BoxShape.circle,
-                                      ),
-                                      child: const Icon(
-                                        LucideIcons.scan,
-                                        color: Colors.black,
-                                        size: 30,
-                                      ),
-                                    ),
-                            ),
-                          ),
-                        ),
+                        ],
                       ),
                     ),
                   ],
@@ -286,35 +344,41 @@ class _ScanScreenState extends State<ScanScreen> with WidgetsBindingObserver {
                 );
               }
             },
-          );
-        },
+          ),
+        ),
       ),
     );
   }
 }
 
-// ... Class ScannerOverlayPainter TETAP SAMA seperti kode Anda ...
-
-/// ===== CUSTOM PAINTER =====
 class ScannerOverlayPainter extends CustomPainter {
-  final double scanWidth;
-  final double scanHeight;
+  final double animationValue;
+  final double scanWidthFactor;
+  final double scanHeightFactor;
+  final bool showLaserLine;
 
-  ScannerOverlayPainter({required this.scanWidth, required this.scanHeight});
+  ScannerOverlayPainter({
+    required this.animationValue,
+    required this.scanWidthFactor,
+    required this.scanHeightFactor,
+    required this.showLaserLine,
+  });
 
   @override
   void paint(Canvas canvas, Size size) {
-    // Perhitungan yang SAMA PERSIS dengan di build()
+    // Ukuran dinamis mengikuti input konfigurasi/faktor kustomisasi dari user
+    final double scanWidth = size.width * scanWidthFactor;
+    final double scanHeight = size.height * scanHeightFactor;
+
     final double left = (size.width - scanWidth) / 2;
     final double top = (size.height - scanHeight) / 2;
     final double right = left + scanWidth;
     final double bottom = top + scanHeight;
     const double radius = 20.0;
 
-    // 1. Background Gelap (Bolong Tengah)
+    // 1. Gambar Background Masking Gelap Gelap dengan Lubang Cutout Terbuka
     final backgroundPath = Path()
       ..addRect(Rect.fromLTWH(0, 0, size.width, size.height));
-
     final cutoutPath = Path()
       ..addRRect(
         RRect.fromRectAndRadius(
@@ -328,10 +392,9 @@ class ScannerOverlayPainter extends CustomPainter {
       backgroundPath,
       cutoutPath,
     );
-
     canvas.drawPath(path, Paint()..color = Colors.black.withOpacity(0.6));
 
-    // 2. Border Polygon Biru
+    // 2. Gambar Sudut/Corner Siku Siku Frame Berwarna Biru Accent
     final paintBorder = Paint()
       ..color = Colors.blueAccent
       ..style = PaintingStyle.stroke
@@ -341,26 +404,75 @@ class ScannerOverlayPainter extends CustomPainter {
     final double cornerLength = 30;
     final pathBorder = Path();
 
-    // Kiri Atas
+    // Siku Kiri Atas
     pathBorder.moveTo(left, top + cornerLength);
     pathBorder.lineTo(left, top);
     pathBorder.lineTo(left + cornerLength, top);
-    // Kanan Atas
+
+    // Siku Kanan Atas
     pathBorder.moveTo(right - cornerLength, top);
     pathBorder.lineTo(right, top);
     pathBorder.lineTo(right, top + cornerLength);
-    // Kanan Bawah
+
+    // Siku Kanan Bawah
     pathBorder.moveTo(right, bottom - cornerLength);
     pathBorder.lineTo(right, bottom);
     pathBorder.lineTo(right - cornerLength, bottom);
-    // Kiri Bawah
+
+    // Siku Kiri Bawah
     pathBorder.moveTo(left + cornerLength, bottom);
     pathBorder.lineTo(left, bottom);
     pathBorder.lineTo(left, bottom - cornerLength);
 
     canvas.drawPath(pathBorder, paintBorder);
+
+    // 3. Efek Animasi Garis Laser & Gradasi Cahaya (Hanya Aktif Jika showLaserLine = true)
+    if (showLaserLine) {
+      final double currentY = top + (scanHeight * animationValue);
+      final double glowHeight = 25.0;
+
+      // Pendaran Cahaya Laser Gradient (Glow)
+      final Rect glowRect = Rect.fromLTRB(
+        left + 5,
+        (currentY - glowHeight).clamp(top, bottom),
+        right - 5,
+        (currentY + glowHeight).clamp(top, bottom),
+      );
+
+      final paintGlow = Paint()
+        ..shader = LinearGradient(
+          begin: Alignment.topCenter,
+          end: Alignment.bottomCenter,
+          colors: [
+            Colors.blueAccent.withOpacity(0.0),
+            Colors.blueAccent.withOpacity(0.35),
+            Colors.blueAccent.withOpacity(0.0),
+          ],
+          stops: const [0.0, 0.5, 1.0],
+        ).createShader(glowRect);
+
+      canvas.drawRect(glowRect, paintGlow);
+
+      // Inti Garis Laser Utama yang Tajam
+      final paintLaserLine = Paint()
+        ..color = Colors.blueAccent.withOpacity(0.9)
+        ..strokeWidth = 3.5
+        ..strokeCap = StrokeCap.round;
+
+      canvas.drawLine(
+        Offset(left + 8, currentY),
+        Offset(right - 8, currentY),
+        paintLaserLine,
+      );
+    }
   }
 
   @override
-  bool shouldRepaint(covariant CustomPainter oldDelegate) => false;
+  bool shouldRepaint(ScannerOverlayPainter oldDelegate) {
+    // Repaint dipicu apabila ada perubahan nilai animasi, modifikasi ukuran frame, maupun status laser
+    return oldDelegate.animationValue != animationValue ||
+        oldDelegate.scanWidthFactor != scanWidthFactor ||
+        oldDelegate.scanHeightFactor != scanHeightFactor ||
+        oldDelegate.showLaserLine != showLaserLine;
+  }
 }

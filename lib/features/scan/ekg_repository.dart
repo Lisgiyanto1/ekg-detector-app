@@ -34,7 +34,7 @@ class EkgRepository {
     try {
       _interpreter = await Interpreter.fromAsset(
         'assets/model/model_ekg.tflite',
-        options: InterpreterOptions()..threads = 2, // 🔥 lebih cepat
+        options: InterpreterOptions()..threads = 2,
       );
 
       final labelStr = await rootBundle.loadString('assets/model/labels.txt');
@@ -44,9 +44,7 @@ class EkgRepository {
         'assets/model/data_rekomendasi.csv',
       );
 
-      final rows = const CsvToListConverter(
-        fieldDelimiter: ';',
-      ).convert(csvStr);
+      final rows = const CsvDecoder(fieldDelimiter: ';').convert(csvStr);
 
       for (var i = 1; i < rows.length; i++) {
         final row = rows[i];
@@ -60,7 +58,6 @@ class EkgRepository {
 
         _csvData[cleanKey] = EkgRecommendation(
           label: row[0].toString(), // ekg_result
-
           treatment: row[1].toString(), // tindak_lanjut 🏥
           medicine: row[2].toString(), // obat_umum 💊
           prevention: row[3].toString(), // pencegahan 🛡️
@@ -167,10 +164,11 @@ class EkgRepository {
     double total = 0;
 
     for (var p in small) {
-      total += p.luminance;
+      // FIX: Menyesuaikan ekstraksi nilai luminance untuk library `image` v4.x
+      total += p.luminance / p.maxChannelValue;
     }
 
-    final avg = total / (small.width * small.height);
+    final avg = (total / (small.width * small.height)) * 255.0;
 
     debugPrint("💡 Rata-rata Kecerahan: ${avg.toStringAsFixed(1)}");
 
@@ -183,7 +181,12 @@ class EkgRepository {
         224,
         (y) => List.generate(224, (x) {
           final p = img224.getPixel(x, y);
-          return [p.r / 255.0, p.g / 255.0, p.b / 255.0];
+          // FIX: Menyesuaikan ekstraksi warna R, G, B untuk library `image` v4.x
+          return [
+            p.r / p.maxChannelValue,
+            p.g / p.maxChannelValue,
+            p.b / p.maxChannelValue,
+          ];
         }),
       ),
     ];

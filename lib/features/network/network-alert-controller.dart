@@ -2,7 +2,8 @@ import 'dart:async';
 
 import 'package:flutter/material.dart';
 import 'package:flutter_ekg_detector/widgets/NetworkAlert.dart';
-import 'package:lucide_icons/lucide_icons.dart';
+import 'package:lucide_icons_flutter/lucide_icons.dart';
+
 
 class NetworkAlertController {
   static OverlayEntry? _entry;

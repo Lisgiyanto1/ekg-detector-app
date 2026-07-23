@@ -2,7 +2,8 @@ import 'dart:ui';
 
 import 'package:flutter/material.dart';
 import 'package:flutter_ekg_detector/widgets/ScanModal.dart';
-import 'package:lucide_icons/lucide_icons.dart';
+import 'package:lucide_icons_flutter/lucide_icons.dart';
+
 
 enum FloatingMenuMode { home, result }
 
@@ -33,10 +34,10 @@ class _GlassFloatingMenuState extends State<GlassFloatingMenu> {
 
   /* ================= INIT ================= */
 
-  void _ensureInitialPosition(Size screen) {
+  void _ensureInitialPosition(Size screen, EdgeInsets padding) {
     position ??= Offset(
       screen.width - size - margin,
-      screen.height - size - margin,
+      screen.height - size - margin - padding.bottom,
     );
   }
 
@@ -78,8 +79,9 @@ class _GlassFloatingMenuState extends State<GlassFloatingMenu> {
     final rootContext = Navigator.of(context, rootNavigator: true).context;
 
     final Size screen = MediaQuery.of(rootContext).size;
+    final EdgeInsets padding = MediaQuery.of(rootContext).padding;
 
-    _ensureInitialPosition(screen);
+    _ensureInitialPosition(screen, padding);
 
     final double effectiveTop = isExpanded && !expandDown
         ? position!.dy - (expandedHeight - size)
@@ -98,8 +100,16 @@ class _GlassFloatingMenuState extends State<GlassFloatingMenu> {
             double newX = position!.dx + details.delta.dx;
             double newY = position!.dy + details.delta.dy;
 
-            newX = newX.clamp(0, screen.width - size);
-            newY = newY.clamp(0, screen.height - size);
+            // 🔒 Clamp dengan SafeArea
+            newX = newX.clamp(
+              margin,
+              screen.width - size - margin,
+            );
+
+            newY = newY.clamp(
+              padding.top + margin,
+              screen.height - size - padding.bottom - margin,
+            );
 
             position = Offset(newX, newY);
 
@@ -108,6 +118,20 @@ class _GlassFloatingMenuState extends State<GlassFloatingMenu> {
             }
           });
         },
+
+        // 🔥 SNAP KE EDGE
+        onPanEnd: (_) {
+          final double middle = screen.width / 2;
+
+          setState(() {
+            final double targetX = position!.dx < middle
+                ? margin
+                : screen.width - size - margin;
+
+            position = Offset(targetX, position!.dy);
+          });
+        },
+
         child: ClipRRect(
           borderRadius: BorderRadius.circular(28),
           child: BackdropFilter(
@@ -119,7 +143,9 @@ class _GlassFloatingMenuState extends State<GlassFloatingMenu> {
               decoration: BoxDecoration(
                 color: Colors.white.withValues(alpha: 0.22),
                 borderRadius: BorderRadius.circular(28),
-                border: Border.all(color: Colors.white.withValues(alpha: 0.25)),
+                border: Border.all(
+                  color: Colors.white.withValues(alpha: 0.25),
+                ),
               ),
               child: Stack(
                 alignment: expandDown
@@ -174,7 +200,10 @@ class _GlassFloatingMenuState extends State<GlassFloatingMenu> {
     );
   }
 
-  Widget _menuIcon({required IconData icon, required VoidCallback onTap}) {
+  Widget _menuIcon({
+    required IconData icon,
+    required VoidCallback onTap,
+  }) {
     return Material(
       type: MaterialType.transparency,
       child: InkResponse(
@@ -182,7 +211,11 @@ class _GlassFloatingMenuState extends State<GlassFloatingMenu> {
         radius: 28,
         customBorder: const CircleBorder(),
         splashColor: Colors.white.withValues(alpha: 0.2),
-        child: SizedBox(width: size, height: size, child: Icon(icon, size: 22)),
+        child: SizedBox(
+          width: size,
+          height: size,
+          child: Icon(icon, size: 22),
+        ),
       ),
     );
   }
